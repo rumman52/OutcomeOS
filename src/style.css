@@ -1,8 +1,0 @@
-:root { font-family: Inter, system-ui, sans-serif; color: #13231d; background: #eef4ef }
-main { max-width: 640px; margin: 10vh auto; padding: 3rem; background: white; border-radius: 20px; box-shadow: 0 16px 50px #173d2820 }
-.eyebrow { color: #28734b; font-weight: 700; letter-spacing: .1em; text-transform: uppercase }
-h1 { font-size: 2.5rem; margin: .25rem 0 }
-form { display: grid; gap: .75rem; margin-top: 2rem }
-input, button { padding: .8rem; font: inherit; border-radius: 8px; border: 1px solid #8aa597 }
-button { color: white; background: #17643c; cursor: pointer }
-section { margin-top: 1.5rem; padding: 1rem; background: #e5f6eb; border-radius: 8px }

@@ -1,13 +1,12 @@
 {
-  "name": "outcomeos-web",
+  "name": "outcomeos",
   "private": true,
+  "packageManager": "pnpm@10.14.0",
+  "engines": { "node": ">=22" },
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
-    "test": "vitest run",
-    "test:e2e": "playwright test",
-    "lint": "eslint ."
-  },
-  "dependencies": {"@vitejs/plugin-react": "latest", "vite": "latest", "react": "latest", "react-dom": "latest"},
-  "devDependencies": {"@eslint/js": "latest", "@playwright/test": "latest", "@testing-library/jest-dom": "latest", "@testing-library/react": "latest", "@types/react": "latest", "@types/react-dom": "latest", "eslint": "latest", "eslint-plugin-react-hooks": "latest", "globals": "latest", "jsdom": "latest", "typescript": "latest", "typescript-eslint": "latest", "vitest": "latest"}
+    "dev": "pnpm --parallel --filter './apps/*' dev",
+    "check": "pnpm --recursive check",
+    "build": "pnpm --recursive build",
+    "test": "pnpm --recursive test"
+  }
 }

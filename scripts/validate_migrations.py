@@ -1,6 +1,6 @@
 from pathlib import Path
 
-files = sorted(Path("migrations").glob("*.sql"))
+files = sorted(Path("apps/api/migrations").glob("*.sql"))
 assert files, "at least one migration is required"
 names = [path.name.split("_", 1)[0] for path in files]
 assert len(names) == len(set(names)), "duplicate migration sequence"

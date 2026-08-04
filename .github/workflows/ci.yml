@@ -6,30 +6,35 @@ on:
 permissions:
   contents: read
 jobs:
-  backend:
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with: {fetch-depth: 0}
-      - uses: actions/setup-python@v5
-        with: {python-version: '3.12', cache: pip}
-      - run: pip install -e '.[dev]'
-      - run: ruff check .
-      - run: ruff format --check .
-      - run: mypy
-      - run: pytest --cov=outcomeos --cov-report=term-missing --cov-fail-under=90
-      - run: python scripts/validate_migrations.py
-      - name: Secret scanning
-        run: detect-secrets scan --all-files --exclude-files 'package-lock.json' > /tmp/secrets.json && test "$(python -c 'import json; print(len(json.load(open("/tmp/secrets.json"))["results"]))')" = 0
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.14.0 }
       - uses: actions/setup-node@v4
-        with: {node-version: 22}
-      - run: npm install
-      - run: npm run lint
-      - run: npx tsc --noEmit
-      - run: npm test
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+        with: { node-version: 22 }
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm --filter @outcomeos/web check
+      - run: pnpm --filter @outcomeos/web build
+        env:
+          DEMO_AUTH_ENABLED: "false"
+          MOCK_INTEGRATIONS_ENABLED: "false"
+      - run: pnpm --filter @outcomeos/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @outcomeos/web test:e2e
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { enable-cache: true }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: uv sync --project apps/api
+      - run: uv run --project apps/api ruff check apps/api scripts/validate_migrations.py
+      - run: uv run --project apps/api ruff format --check apps/api scripts/validate_migrations.py
+      - run: uv run --project apps/api mypy apps/api/src apps/api/tests
+      - run: uv run --project apps/api pytest apps/api/tests --cov=outcomeos_api --cov-report=term-missing --cov-fail-under=90
+      - run: uv run --project apps/api python scripts/validate_migrations.py
+      - name: Secret scanning
+        run: uv run --project apps/api detect-secrets scan --all-files --exclude-files 'pnpm-lock.yaml' > /tmp/secrets.json && test "$(python -c 'import json; print(len(json.load(open("/tmp/secrets.json"))["results"]))')" = 0
