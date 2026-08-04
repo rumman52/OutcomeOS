@@ -13,3 +13,8 @@ def test_demo_features_are_rejected_in_production(flag: str) -> None:
 def test_demo_features_can_be_used_locally() -> None:
     settings = Settings(app_env="development", demo_auth_enabled=True)
     assert settings.demo_auth_enabled is True
+
+
+def test_default_database_url_does_not_embed_credentials() -> None:
+    settings = Settings(_env_file=None)
+    assert settings.database_url == "postgresql://localhost:5432/outcomeos"

@@ -1,6 +1,11 @@
 from unittest.mock import MagicMock, patch
 
-from outcomeos_worker.main import check_database
+from outcomeos_worker.main import Settings, check_database
+
+
+def test_default_database_url_does_not_embed_credentials() -> None:
+    settings = Settings(_env_file=None)
+    assert settings.database_url == "postgresql://localhost:5432/outcomeos"
 
 
 def test_check_database_executes_probe() -> None:

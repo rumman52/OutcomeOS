@@ -9,7 +9,8 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    database_url: str = "postgresql://outcomeos:outcomeos@localhost:5432/outcomeos"
+    # Credential-free fallback supports local checks; deployed environments must override it.
+    database_url: str = "postgresql://localhost:5432/outcomeos"
     worker_poll_interval_seconds: float = 5.0
 
 
