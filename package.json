@@ -1,0 +1,13 @@
+{
+  "name": "outcomeos-web",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "lint": "eslint ."
+  },
+  "dependencies": {"@vitejs/plugin-react": "latest", "vite": "latest", "react": "latest", "react-dom": "latest"},
+  "devDependencies": {"@eslint/js": "latest", "@playwright/test": "latest", "@testing-library/jest-dom": "latest", "@testing-library/react": "latest", "@types/react": "latest", "@types/react-dom": "latest", "eslint": "latest", "eslint-plugin-react-hooks": "latest", "globals": "latest", "jsdom": "latest", "typescript": "latest", "typescript-eslint": "latest", "vitest": "latest"}
+}
