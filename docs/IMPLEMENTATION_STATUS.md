@@ -13,14 +13,14 @@ Allowed status vocabulary in this document is limited to: `complete`, `partial`,
 | Local Redis | complete | Compose service exists; API use is not started |
 | Local S3-compatible storage | complete | MinIO Compose service exists; application use is not started |
 | CI checks | complete | Web and API check jobs exist |
-| Demo authentication | mock | No real identity validation; production configuration rejects demo mode |
-| Mock integration framework | mock | Configuration flag and production guard only; no provider operations |
+| Demo authentication | partial | Development/demo OTP challenge storage exists; code exposure fails closed outside those environments |
+| Mock integration framework | mock | Deterministic AI shop assistant and validated tools exist; no provider operations |
 | Production authentication | not started | OIDC provider and sessions are absent |
-| Tenant authorization | not started | Domain and persistence layers are absent |
-| Outcome and initiative workflows | not started | Product behavior is documented only |
-| Database schema and migrations | not started | Only pgvector extension initialization exists |
+| Tenant authorization | partial | PostgreSQL row-level policies and tenant-scoped queries exist; production identity integration is absent |
+| Outcome and initiative workflows | partial | Deterministic commerce outcome and fixed-fee billing journey exists |
+| Database schema and migrations | partial | Initial tenant commerce/outcome PostgreSQL migration and demo SQLite schema exist |
 | Evidence upload pipeline | not started | Storage is local infrastructure only |
-| Background workers | not started | No worker runtime exists |
+| Background workers | partial | Transactional outbox is populated; worker delivery runtime is absent |
 | Observability and audit logging | not started | No telemetry or audit store exists |
 | External provider integrations | not started | Candidates are plans only; none are operational |
 | Production deployment | blocked | Requires secure core, operations, and launch gates |
