@@ -17,8 +17,8 @@ Last reviewed: 2026-08-04. This ledger is the authority for capability claims, n
 | Capability | Status | Verification and limitations |
 | --- | --- | --- |
 | Repository boundaries and contributor rules | implemented | Root guidance and expected directories exist |
-| Reproducible JavaScript dependencies | partial | Bootstrap pnpm lock manifest is checked in and CI requires frozen install; package resolution must be completed before the gate passes |
-| Reproducible Python dependencies | partial | Bootstrap uv lock manifest is checked in and CI requires frozen sync; package resolution must be completed before the gate passes |
+| Reproducible JavaScript dependencies | blocked | A genuine pnpm lockfile must be generated from the merged dependency manifest; placeholder lockfiles are not acceptable |
+| Reproducible Python dependencies | blocked | A genuine uv lockfile must be generated from the merged API manifest; placeholder lockfiles are not acceptable |
 | Root quality command surface | implemented | Setup, dev, lint, typecheck, tests, E2E, build, migration validation, seed, and aggregate targets exist; some targets honestly no-op/fail where capability is absent |
 | Next.js strict skeleton | implemented | Landing page, strict compiler configuration, lint and build exist |
 | FastAPI strict skeleton | implemented | Health route, configuration validation, tests, lint and strict mypy exist |
@@ -34,8 +34,8 @@ Last reviewed: 2026-08-04. This ledger is the authority for capability claims, n
 | Financial calculation and state machine | not started | Invariants are documented only |
 | Payment/credit allocation | not started | No model or provider behavior exists |
 | Audit log and idempotency | not started | Required design is documented only |
-| E2E product coverage | partial | Harness command exists; persistent journey test is explicitly a placeholder |
-| CI quality/build/migration/secret gates | partial | Frozen dependency, check, build, migration validation, and gitleaks jobs are defined; dependency gates await resolved lockfiles |
+| E2E product coverage | not started | A placeholder test is not product coverage; the persistent journey has no executable E2E test |
+| CI quality/build/migration/secret gates | partial | CI behavior is maintained on `main`; frozen dependency gates still require genuine generated lockfiles |
 | Production OIDC | blocked | Provider/security decisions and Phase 1 implementation are absent |
 | External payment/tax/accounting integrations | blocked | No provider selected or connector implemented |
 | Any provider sandbox test | not started | No sandbox evidence has been produced |

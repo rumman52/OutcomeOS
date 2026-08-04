@@ -1,6 +1,0 @@
-version = 1
-revision = 3
-requires-python = ">=3.12"
-
-# Regenerate with `uv lock --project apps/api` before dependency installation. Package
-# resolution was unavailable in the foundation environment.
