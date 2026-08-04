@@ -33,4 +33,33 @@ make test     # run backend tests
 make infra-up # start local dependencies
 ```
 
+Operational probes are `GET /health` (process liveness), `GET /ready` (dependency
+readiness), and `GET /worker-health` (background-worker/queue health). The existing
+`GET /healthz` endpoint remains available for compatibility.
+
+## Exact local and CI verification commands
+
+Run these commands from the repository root after `make install`. They are the same checks
+used by `.github/workflows/ci.yml`:
+
+```bash
+uv run --project apps/api ruff check apps/api scripts/validate_migrations.py
+uv run --project apps/api ruff format --check apps/api scripts/validate_migrations.py
+uv run --project apps/api mypy apps/api/src apps/api/tests
+uv run --project apps/api pytest apps/api/tests --cov=outcomeos_api --cov-report=term-missing --cov-fail-under=90
+uv run --project apps/api python scripts/validate_migrations.py
+uv run --project apps/api detect-secrets scan --all-files --exclude-files 'pnpm-lock.yaml'
+pnpm --filter @outcomeos/web lint
+pnpm --filter @outcomeos/web typecheck
+pnpm --filter @outcomeos/web test
+pnpm --filter @outcomeos/web build
+pnpm --filter @outcomeos/web exec playwright install chromium
+pnpm --filter @outcomeos/web test:e2e
+```
+
+The API suite covers tenant isolation, RBAC, signed webhook replay windows, canonical event
+idempotency, transactional outbox behavior, attribution boundaries, order validation and
+concurrency, contract versions, append-only credits, and dispute finality. The AI evaluations
+use a deterministic provider and require no API key, external model, or network call.
+
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for system boundaries and [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) for an honest capability inventory.

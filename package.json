@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm --parallel --filter './apps/*' dev",
     "check": "pnpm --recursive check",
-    "build": "pnpm --recursive build"
+    "build": "pnpm --recursive build",
+    "test": "pnpm --recursive test"
   }
 }

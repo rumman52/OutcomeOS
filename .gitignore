@@ -13,5 +13,8 @@ __pycache__/
 .ruff_cache/
 .venv/
 apps/api/.venv/
+.coverage
+playwright-report/
+test-results/
 .idea/
 .vscode/
