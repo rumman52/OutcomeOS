@@ -46,7 +46,10 @@ def records_for(tenant_id):
             display_name="Contact",
         ),
         Conversation(
-            tenant_id=tenant_id, provider="fixture", external_id=str(uuid4()), subject="Private"
+            tenant_id=tenant_id,
+            provider="fixture",
+            external_id=str(uuid4()),
+            subject="Private",
         ),
         KnowledgeDocument(
             id=document_id,
@@ -56,7 +59,10 @@ def records_for(tenant_id):
             title="Private",
         ),
         KnowledgeChunk(
-            tenant_id=tenant_id, document_id=document_id, chunk_index=0, content="Private"
+            tenant_id=tenant_id,
+            document_id=document_id,
+            chunk_index=0,
+            content="Private",
         ),
         Order(
             id=order_id,

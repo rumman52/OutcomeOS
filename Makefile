@@ -1,4 +1,4 @@
-.PHONY: setup install dev dev-web dev-api dev-worker lint typecheck test e2e build migrations-check migrate seed verify infra-up infra-down
+.PHONY: setup install dev dev-web dev-api dev-worker lint typecheck test test-integration e2e build migrations-check migrate seed verify infra-up infra-down
 
 setup install:
 	pnpm install --frozen-lockfile
@@ -14,7 +14,7 @@ dev-api:
 	uv run --project apps/api uvicorn outcomeos_api.main:app --reload
 
 dev-worker:
-	@echo "Worker runtime is not implemented; see apps/worker/README.md" && exit 1
+	uv run --project apps/api python -m outcomeos_api.worker
 
 lint:
 	pnpm lint
@@ -28,6 +28,9 @@ test:
 	pnpm test
 	uv run --project apps/api pytest apps/api/tests
 
+test-integration:
+	uv run --project apps/api pytest apps/api/tests -m "not e2e"
+
 e2e:
 	pnpm e2e
 
@@ -36,15 +39,16 @@ build:
 	uv build --project apps/api
 
 migrations-check:
-	python3 scripts/validate_migrations.py
+	uv run --project apps/api python scripts/validate_migrations.py
 
 migrate:
-	@echo "Migration execution is not implemented; validation is available via make migrations-check" && exit 1
+	uv run --project apps/api alembic -c apps/api/alembic.ini upgrade head
 
 seed:
-	python3 scripts/seed.py
+	uv run --project apps/api python scripts/seed.py
 
-verify: lint typecheck test e2e build migrations-check
+verify: lint typecheck test build migrations-check
+	@echo "E2E available via make e2e after starting web/API"
 
 infra-up:
 	docker compose up -d

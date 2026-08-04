@@ -2,11 +2,19 @@
   "name": "outcomeos",
   "private": true,
   "packageManager": "pnpm@10.14.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "pnpm --parallel --filter './apps/*' dev",
     "check": "pnpm --recursive check",
     "build": "pnpm --recursive build",
-    "test": "pnpm --recursive test"
+    "test": "pnpm --recursive test",
+    "lint": "pnpm --recursive lint",
+    "typecheck": "pnpm --recursive typecheck",
+    "e2e": "pnpm --filter @outcomeos/web test:e2e",
+    "dev-web": "pnpm --filter @outcomeos/web dev",
+    "dev-api": "uv run --project apps/api uvicorn outcomeos_api.main:app --reload",
+    "dev-worker": "uv run --project apps/api python -m outcomeos_api.worker"
   }
 }
