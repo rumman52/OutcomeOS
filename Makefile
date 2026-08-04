@@ -17,7 +17,7 @@ dev-api:
 	uv run --project apps/api uvicorn outcomeos_api.main:app --reload
 
 dev-worker:
-	@echo "Worker runtime is not implemented; see apps/worker/README.md" && exit 1
+	uv run --project apps/worker python -m outcomeos_worker
 
 lint:
 	pnpm lint
@@ -31,8 +31,11 @@ test:
 	pnpm test
 	uv run --project apps/api pytest apps/api/tests
 
-test-e2e e2e:
+test-e2e:
 	uv run --project apps/api pytest -m e2e apps/api/tests
+
+e2e:
+	pnpm e2e
 
 build:
 	pnpm build
@@ -40,6 +43,7 @@ build:
 	uv build --project apps/worker
 
 migrations-check:
+	python3 scripts/validate_migrations.py
 	uv run --project apps/api alembic -c apps/api/alembic.ini check
 
 migrate:
@@ -48,7 +52,7 @@ migrate:
 seed:
 	uv run --project apps/api python scripts/seed.py
 
-verify: lint typecheck test test-e2e build
+verify: lint typecheck test test-e2e e2e build migrations-check
 
 infra-up:
 	docker compose up -d --wait
