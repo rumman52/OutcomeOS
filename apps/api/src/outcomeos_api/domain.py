@@ -142,7 +142,11 @@ def require_role(actor: Actor, *roles: Role) -> None:
 
 
 def verify_webhook(
-    secret: str, body: bytes, signature: str, timestamp: int, now: datetime | None = None
+    secret: str,
+    body: bytes,
+    signature: str,
+    timestamp: int,
+    now: datetime | None = None,
 ) -> bool:
     now = now or datetime.now(UTC)
     if abs(now.timestamp() - timestamp) > timedelta(minutes=5).total_seconds():

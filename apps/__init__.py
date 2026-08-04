@@ -1,1 +1,0 @@
-"""OutcomeOS applications."""

@@ -14,7 +14,7 @@ jobs:
         with: { version: 10.14.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @outcomeos/web check
       - run: pnpm --filter @outcomeos/web build
         env:
@@ -30,7 +30,7 @@ jobs:
         with: { enable-cache: true }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: uv sync --project apps/api
+      - run: uv sync --project apps/api --frozen
       - run: uv run --project apps/api ruff check apps/api scripts/validate_migrations.py
       - run: uv run --project apps/api ruff format --check apps/api scripts/validate_migrations.py
       - run: uv run --project apps/api mypy apps/api/src apps/api/tests

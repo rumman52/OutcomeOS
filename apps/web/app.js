@@ -1,7 +1,0 @@
-const outcomes=[['Maya Chen','#OS-1842','Verified','$129.00'],['Jon Bell','#OS-1841','Delivered','$84.50'],['Ari Singh','#OS-1840','COD settled','$210.00'],['Lea Martin','#OS-1839','Awaiting evidence','$62.00']];
-document.querySelector('#outcomes').innerHTML=outcomes.map(x=>`<tr><td><b>${x[0]}</b></td><td>${x[1]}</td><td><span class="state">${x[2]}</span></td><td><span class="provider">SANDBOX</span></td><td>${x[3]}</td></tr>`).join('');
-const threads=[['Maya Chen','Is the linen set available?'],['Jon Bell','Thanks for the update!'],['Ari Singh','When will it arrive?']];
-document.querySelector('#thread-list').innerHTML=threads.map((x,i)=>`<div class="thread ${i?'':'active'}"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,.view').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelector(`#${b.dataset.view}`).classList.add('active');document.querySelector('#title').textContent=b.dataset.view==='inbox'?'Agent inbox':'Outcome dashboard'});
-document.querySelector('#approve').onclick=()=>{document.querySelector('#reply').classList.remove('hidden');document.querySelector('#approve').textContent='Approved'};
-document.querySelector('#composer').onsubmit=e=>{e.preventDefault();const i=e.target.querySelector('input');if(i.value){document.querySelector('.messages').insertAdjacentHTML('beforeend',`<p class="outgoing">${i.value.replace(/[<>]/g,'')}</p>`);i.value=''}};

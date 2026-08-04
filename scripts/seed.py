@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
-"""Safe seed entry point until persistence is implemented."""
+from outcomeos_api.mvp import store, TENANT
 
-print("No seed data applied: persistent domain storage is not implemented.")
+store.reset()
+print(f"Seeded deterministic sandbox demo tenant {TENANT}.")

@@ -82,7 +82,10 @@ class KnowledgeDocument(Base, IdMixin, TenantOwned, ExternalMixin):
     __tablename__ = "knowledge_documents"
     __table_args__ = (
         UniqueConstraint(
-            "tenant_id", "provider", "external_id", name="uq_knowledge_documents_external"
+            "tenant_id",
+            "provider",
+            "external_id",
+            name="uq_knowledge_documents_external",
         ),
     )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -92,7 +95,10 @@ class KnowledgeChunk(Base, IdMixin, TenantOwned):
     __tablename__ = "knowledge_chunks"
     __table_args__ = (
         UniqueConstraint(
-            "tenant_id", "document_id", "chunk_index", name="uq_knowledge_chunks_position"
+            "tenant_id",
+            "document_id",
+            "chunk_index",
+            name="uq_knowledge_chunks_position",
         ),
     )
     document_id: Mapped[uuid.UUID] = mapped_column(
