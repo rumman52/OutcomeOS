@@ -1,0 +1,34 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.14.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm --filter @outcomeos/web check
+      - run: pnpm --filter @outcomeos/web build
+        env:
+          DEMO_AUTH_ENABLED: "false"
+          MOCK_INTEGRATIONS_ENABLED: "false"
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { enable-cache: true }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: uv sync --project apps/api
+      - run: uv run --project apps/api ruff check apps/api
+      - run: uv run --project apps/api mypy apps/api/src apps/api/tests
+      - run: uv run --project apps/api pytest apps/api/tests
