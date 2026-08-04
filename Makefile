@@ -3,7 +3,6 @@
 setup install:
 	pnpm install --frozen-lockfile
 	uv sync --project apps/api --frozen
-	uv sync --project apps/worker --frozen
 
 dev:
 	@trap 'kill 0' INT TERM EXIT; \
@@ -18,22 +17,19 @@ dev-api:
 	uv run --project apps/api uvicorn outcomeos_api.main:app --reload
 
 dev-worker:
-	uv run --project apps/worker python -m outcomeos_worker
+	@echo "Worker runtime is not implemented; see apps/worker/README.md" && exit 1
 
 lint:
 	pnpm lint
 	uv run --project apps/api ruff check apps/api
-	uv run --project apps/worker ruff check apps/worker
 
 typecheck:
 	pnpm typecheck
 	uv run --project apps/api mypy apps/api/src apps/api/tests
-	uv run --project apps/worker mypy apps/worker/src apps/worker/tests
 
 test:
 	pnpm test
 	uv run --project apps/api pytest apps/api/tests
-	uv run --project apps/worker pytest apps/worker/tests
 
 test-e2e e2e:
 	uv run --project apps/api pytest -m e2e apps/api/tests
