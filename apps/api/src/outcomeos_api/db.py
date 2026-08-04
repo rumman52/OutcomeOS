@@ -19,13 +19,17 @@ class AuthenticatedPrincipal:
     membership_id: UUID
 
 
-def principal_from_membership(session: Session, *, user_id: UUID, tenant_id: UUID) -> AuthenticatedPrincipal:
+def principal_from_membership(
+    session: Session, *, user_id: UUID, tenant_id: UUID
+) -> AuthenticatedPrincipal:
     """Resolve tenant context from persisted membership, never request-supplied claims alone."""
     from .models import Membership
 
-    membership = session.query(Membership).filter_by(
-        user_id=user_id, tenant_id=tenant_id, status="active"
-    ).one_or_none()
+    membership = (
+        session.query(Membership)
+        .filter_by(user_id=user_id, tenant_id=tenant_id, status="active")
+        .one_or_none()
+    )
     if membership is None:
         raise TenantAccessError("no active membership for tenant")
     return AuthenticatedPrincipal(user_id, membership.tenant_id, membership.id)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Generic, TypeVar
 from uuid import UUID
 
 from sqlalchemy import Select, select
@@ -9,10 +8,8 @@ from sqlalchemy.orm import Session
 from .db import TenantAccessError
 from .models import Base, KnowledgeChunk, TenantOwned
 
-T = TypeVar("T", bound=Base)
 
-
-class TenantRepository(Generic[T]):
+class TenantRepository[T: Base]:
     """Repository that always derives scope from transaction context."""
 
     def __init__(self, session: Session, model: type[T]):
@@ -50,8 +47,13 @@ class KnowledgeRepository(TenantRepository[KnowledgeChunk]):
     def __init__(self, session: Session):
         super().__init__(session, KnowledgeChunk)
 
-    def nearest(self, query_embedding: str, *, limit: int = 10) -> list[KnowledgeChunk]:
+    def nearest(self, query_embedding: list[float], *, limit: int = 10) -> list[KnowledgeChunk]:
         """Apply tenant predicate in SQL before limiting or returning any vector result."""
-        distance = KnowledgeChunk.embedding.op("<->")(query_embedding)
-        statement = self.query().where(KnowledgeChunk.embedding.is_not(None)).order_by(distance).limit(limit)
+        distance = KnowledgeChunk.embedding.l2_distance(query_embedding)
+        statement = (
+            self.query()
+            .where(KnowledgeChunk.embedding.is_not(None))
+            .order_by(distance)
+            .limit(limit)
+        )
         return list(self.session.scalars(statement))

@@ -18,7 +18,7 @@ opening a tenant transaction. Object storage and caches use the helpers in
 ## Commands
 
 ```bash
-python -m pip install -e '.[test]'
+uv sync --group dev
 alembic upgrade head
 pytest
 ```

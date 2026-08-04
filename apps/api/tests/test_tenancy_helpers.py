@@ -3,7 +3,13 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from outcomeos_api.tenancy import JobTenantContext, cache_key, object_key, sign_job_context, verify_job_context
+from outcomeos_api.tenancy import (
+    JobTenantContext,
+    cache_key,
+    object_key,
+    sign_job_context,
+    verify_job_context,
+)
 
 
 def test_tenant_namespaces_and_signed_job_context(tenant_ids):

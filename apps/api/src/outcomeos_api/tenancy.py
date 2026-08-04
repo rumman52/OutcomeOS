@@ -32,7 +32,11 @@ class JobTenantContext:
 
 def sign_job_context(context: JobTenantContext, secret: bytes) -> str:
     payload = json.dumps(
-        {"tenant_id": str(context.tenant_id), "membership_id": str(context.membership_id), "exp": context.expires_at},
+        {
+            "tenant_id": str(context.tenant_id),
+            "membership_id": str(context.membership_id),
+            "exp": context.expires_at,
+        },
         separators=(",", ":"),
         sort_keys=True,
     ).encode()
@@ -47,7 +51,9 @@ def verify_job_context(token: str, secret: bytes, *, now: int | None = None) -> 
         if not hmac.compare_digest(signature, hmac.new(secret, payload, hashlib.sha256).digest()):
             raise ValueError("invalid job context signature")
         data: dict[str, Any] = json.loads(payload)
-        context = JobTenantContext(UUID(data["tenant_id"]), UUID(data["membership_id"]), int(data["exp"]))
+        context = JobTenantContext(
+            UUID(data["tenant_id"]), UUID(data["membership_id"]), int(data["exp"])
+        )
     except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         raise ValueError("invalid job context") from exc
     if context.expires_at < (int(time.time()) if now is None else now):
