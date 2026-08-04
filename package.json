@@ -1,11 +1,13 @@
 {
   "name": "outcomeos",
   "private": true,
-  "packageManager": "pnpm@10.14.0",
+  "packageManager": "pnpm@10.28.1",
   "engines": { "node": ">=22" },
   "scripts": {
-    "dev": "pnpm --parallel --filter './apps/*' dev",
-    "check": "pnpm --recursive check",
+    "dev": "pnpm --filter @outcomeos/web dev",
+    "lint": "pnpm --recursive lint",
+    "typecheck": "pnpm --recursive typecheck",
+    "test": "pnpm --recursive test",
     "build": "pnpm --recursive build"
   }
 }

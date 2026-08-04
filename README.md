@@ -1,36 +1,65 @@
 # OutcomeOS
 
-OutcomeOS is an early-stage platform for turning organizational goals into measurable outcomes. This repository is a pnpm/uv monorepo containing a Next.js web application, a FastAPI service, local infrastructure, and product and engineering documentation.
+OutcomeOS is an early-stage platform for turning organizational goals into measurable outcomes. The
+repository contains a Next.js web shell, FastAPI API, separate Python worker shell, PostgreSQL local
+infrastructure, and Alembic migrations.
 
-> **Current state:** foundation only. Authentication is a labeled demo mechanism, integrations are mocks, and neither may be enabled in production.
+> **Capability notice:** this is a foundation, not a production-ready product. Authentication and
+> integrations are not implemented. The demo/mock switches fail closed in production.
 
 ## Prerequisites
 
-- Node.js 22+
-- pnpm 10+
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/)
-- Docker with Compose
+- Node.js 22 or newer and pnpm 10.28
+- Python 3.12 or newer and [uv](https://docs.astral.sh/uv/)
+- Docker Engine with Docker Compose
+- GNU Make
 
-## Quick start
+## Setup and first run
 
 ```bash
-cp .env.example .env
-make install
-make infra-up
-make dev
+cp .env.example .env        # replace the local PostgreSQL password in both relevant values
+make setup                  # installs exactly the committed lockfiles
+make infra-up               # starts PostgreSQL and waits for health
+make migrate                # applies the schema
+make seed                   # optional idempotent example row
+make dev                    # starts web, API, and worker; Ctrl-C stops all three
 ```
 
-The web app runs at <http://localhost:3000>, the API at <http://localhost:8000>, MinIO at <http://localhost:9001>, PostgreSQL at `localhost:5432`, and Redis at `localhost:6379`.
+The web application is at <http://localhost:3000>. The API is at <http://localhost:8000>, with
+liveness at `/health`, dependency readiness at `/ready`, and interactive docs at `/docs`.
 
 ## Commands
 
-```bash
-make install  # install frontend and backend dependencies
-make dev      # run web and API together
-make check    # lint/type-check both applications
-make test     # run backend tests
-make infra-up # start local dependencies
-```
+| Command | Purpose |
+| --- | --- |
+| `make setup` | Install pnpm and both uv environments from frozen lockfiles |
+| `make dev` | Run web, API, and worker concurrently |
+| `make lint` | Run ESLint and Ruff |
+| `make typecheck` | Run strict TypeScript and mypy checks |
+| `make test` | Run web, API, and worker unit tests |
+| `make test-e2e` | Run application-boundary API tests |
+| `make build` | Run the Next.js production build and build both Python wheels |
+| `make seed` | Add idempotent local sample data |
+| `make migrate` | Apply all Alembic migrations |
+| `make verify` | Run lint, typecheck, tests, end-to-end tests, and production builds |
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for system boundaries and [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) for an honest capability inventory.
+`make verify` uses normal Make prerequisites without ignored errors, so it stops and returns nonzero
+as soon as a quality gate fails.
+
+## Troubleshooting
+
+- **Compose reports a required variable is missing:** copy `.env.example` to `.env` and set all
+  `POSTGRES_*` values. Keep `DATABASE_URL` consistent with them.
+- **`/ready` returns 503 or the worker exits:** run `make infra-up`, inspect `docker compose ps` and
+  `docker compose logs postgres`, then check that `DATABASE_URL` uses the exposed port and password.
+- **Migrations fail after changing local credentials:** an existing Docker volume retains the old
+  credentials. If its data is disposable, run `make infra-down`, then
+  `docker volume rm outcomeos_postgres-data` and start again.
+- **Ports 3000, 5432, or 8000 are busy:** stop the conflicting process. PostgreSQL's host port may
+  be changed with `POSTGRES_PORT`; update `DATABASE_URL` to match.
+- **Frozen installation fails:** confirm the required pnpm and uv versions. Deliberately update a
+  dependency with an unfrozen install, review the resulting lockfile, and commit manifest and lockfile
+  together rather than bypassing frozen installs.
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for technology and process boundaries and
+[`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) for the capability inventory.

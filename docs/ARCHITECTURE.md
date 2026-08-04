@@ -1,37 +1,56 @@
 # Architecture
 
-## Context
+## Concrete stack
 
-The browser uses a Next.js application in `apps/web`. It calls the FastAPI service in `apps/api`, which will own business rules and access to PostgreSQL, Redis, and object storage. External providers must be accessed only through backend adapters.
+OutcomeOS is a monorepo with three independently runnable processes:
 
-## Repository boundaries
+| Component | Technology | Responsibility |
+| --- | --- | --- |
+| Web | Next.js 15, React 19, TypeScript | Server-rendered UI and browser interactions |
+| API | Python 3.12, FastAPI, Uvicorn, psycopg | HTTP contracts, authorization, domain logic, and PostgreSQL access |
+| Worker | Python 3.12, psycopg | Separate background-process boundary for asynchronous work |
+| Database | PostgreSQL 17 with pgvector | Durable system of record and future vector search |
+| Migrations | Alembic and SQLAlchemy | Ordered, reversible database schema changes |
+
+The worker is intentionally only a runnable shell today: it proves database connectivity and then
+idles. It is not a production-ready queue consumer. A queue will be selected when actual background
+job semantics are defined rather than hidden behind a mock.
+
+## Runtime and repository boundaries
+
+```text
+browser -> apps/web (Next.js) -> apps/api (FastAPI) -> PostgreSQL
+                                      ^                    ^
+                                      |                    |
+                              HTTP health probes    apps/worker
+```
 
 | Path | Responsibility |
 | --- | --- |
-| `apps/web` | Server-rendered UI and browser interactions |
-| `apps/api` | HTTP API, authorization, domain logic, background job entry points |
-| `packages` | Future shared schemas, clients, and UI components |
-| `infra` | Local initialization and future deployment assets |
-| `scripts` | Repeatable developer and operations automation |
-| `docs` | Product, architecture, security, integration, and delivery records |
+| `apps/web` | Deployable web process |
+| `apps/api` | Deployable HTTP API and versioned migrations |
+| `apps/worker` | Deployable background worker process |
+| `packages` | Shared schemas, clients, and UI code when introduced |
+| `infra` | Local infrastructure and deployment assets |
+| `scripts` | Developer and operational automation |
 
-## Local dependencies
+Code may depend inward on shared packages, but deployable applications do not import one another.
+External providers must be accessed through API-side adapters, never directly from the browser.
 
-- PostgreSQL 17 with pgvector is the future system of record and vector store.
-- Redis is reserved for caching, rate limits, and job coordination.
-- MinIO provides a local S3-compatible API for future evidence attachments.
+## Operations and data
 
-The running API currently exposes only a health endpoint and does not connect to these services.
+`GET /health` is a liveness check and does no network I/O. `GET /ready` executes `SELECT 1` against
+PostgreSQL and returns HTTP 503 if the required dependency is unavailable. Local PostgreSQL runs in
+Docker Compose; its database, user, and password are supplied from the ignored `.env`, not embedded
+in the Compose definition. Alembic migrations are the only supported schema-change mechanism.
 
-## Design rules
-
-- Keep domain logic independent of HTTP and provider SDKs.
-- Validate configuration at startup and fail closed.
-- Make tenant identity explicit in storage and authorization interfaces.
-- Apply schema changes through versioned migrations (not yet implemented).
-- Use transactional outbox/event patterns for reliable asynchronous work when added.
-- Version API contracts and share generated types rather than duplicating models.
+Configuration is validated at process startup. Demo authentication and mock integrations are
+rejected when `APP_ENV=production`. Secrets belong in runtime environment variables or a deployment
+secret store and must never be committed.
 
 ## Deployment shape
 
-The intended production shape separates web, API, worker, managed PostgreSQL, managed Redis, and private object storage. `docker-compose.yml` is strictly a local-development topology and is not a production deployment definition.
+Web, API, and worker are separately built and deployed processes connected to managed PostgreSQL.
+`docker-compose.yml` is strictly local development infrastructure, not a production deployment.
+The initial outcomes table is foundational only; authentication, authorization, tenant isolation,
+queue processing, and product workflows remain to be implemented.

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     app_env: Literal["development", "test", "staging", "production"] = "development"
     demo_auth_enabled: bool = False
     mock_integrations_enabled: bool = False
+    database_url: str = "postgresql://outcomeos:outcomeos@localhost:5432/outcomeos"
 
     @model_validator(mode="after")
     def reject_production_demo_features(self) -> "Settings":
