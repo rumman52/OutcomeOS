@@ -1,0 +1,12 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+# Regenerate with pnpm install before dependency installation. This bootstrap lock records
+# workspace importers; package resolution was unavailable in the foundation environment.
+importers:
+  .: {}
+  apps/web: {}
+  packages/contracts: {}
