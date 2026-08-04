@@ -17,7 +17,7 @@ infrastructure, and Alembic migrations.
 ## Setup and first run
 
 ```bash
-cp .env.example .env        # replace the local PostgreSQL password in both relevant values
+cp .env.example .env        # set the local password and add it to DATABASE_URL
 make setup                  # installs exactly the committed lockfiles
 make infra-up               # starts PostgreSQL and waits for health
 make migrate                # applies the schema
