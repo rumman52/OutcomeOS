@@ -1,23 +1,23 @@
 # Implementation status
 
-Last reviewed: 2026-08-04.
+OutcomeOS currently provides a deterministic local competition MVP for one Bangladesh Facebook-commerce journey. It is a SANDBOX implementation only; real Meta, WhatsApp, TikTok, Google, courier, payment, hosted AI and production identity providers are NOT CONNECTED.
 
-## Status vocabulary
+## Implemented sandbox behavior
 
-implemented = code plus local automated coverage for stated scope; mocked = deterministic local behavior; partial = material gap remains; blocked = external dependency/approval needed; sandbox-tested/live-tested/production-ready require retained external evidence and are not claimed here.
+- Bangla inbound seeded conversation and tenant-scoped seeded product/COD knowledge.
+- Deterministic AI reply/proposal fixture with evidence references and human-approval requirement.
+- Separate lead/order approval, deterministic lead verification, delivery evidence, COD settlement evidence and outcome evaluation steps.
+- Delivery without COD leaves the outcome pending with `COD settlement missing` and creates no fee.
+- COD plus delivery plus verification plus attribution verifies the outcome and creates exactly one BDT 150 performance-fee debit.
+- Replayed sandbox webhooks are idempotent and do not duplicate billable results or ledger debits.
+- Server-calculated contribution profit is BDT 340 after the fee and BDT 490 after dispute reversal credit.
+- Dispute reversal appends a linked BDT 150 credit without deleting or editing the original debit.
+- Next.js route shells exist for the required competition pages and render service-unavailable instead of fallback financial data when the API cannot be reached.
 
-## Capability ledger
+## Partial / not production-ready
 
-| Capability | Status | Verification and limitations |
-| --- | --- | --- |
-| Canonical backend/frontend/migrations | implemented | Duplicate prototype Python package, root Python project, static frontend, and alternate SQL migrations were removed after porting useful behavior/design. |
-| Local Bangladesh e-commerce demo journey | mocked | Deterministic local JSON persistence demonstrates campaign → conversation → AI proposal → approval → lead/order → verification → delivery/COD evidence → outcome → BDT 150 fee → BDT 340 contribution profit → dispute credit. |
-| PostgreSQL schema/RLS | partial | Alembic model history remains canonical; full required table breadth and live PostgreSQL RLS tests are not complete in this change. |
-| Demo auth | mocked | Server returns a local demo principal and rejects tenant switching except for seeded membership behavior. Production guards reject demo/mock flags and default deterministic AI/webhook secret. |
-| External integrations | blocked | Meta, WhatsApp, Google, TikTok, Pathao, payment, OIDC, and real AI providers are NOT CONNECTED and not sandbox-tested/live-tested. |
-| Worker | partial | `make dev-worker` runs a deterministic one-shot health/queue command; long-running claiming/retry/dead-letter worker remains future work. |
-| Health/readiness | partial | Liveness is process-only; readiness checks local demo persistence honestly; worker health reports degraded without heartbeat. |
-| Frontend | partial | Next.js renders responsive sandbox dashboard from API when available and no longer uses local-state order creation; full multi-route app remains future work. |
-| Tests | partial | Unit/API-level tests cover deterministic MVP invariants; full PostgreSQL, concurrency, and Playwright acceptance evidence remains pending. |
-
-No real provider integration is implemented, sandbox-tested, live-tested, or production-ready.
+- Runtime persistence is still the deterministic local JSON-backed sandbox store; PostgreSQL models and migrations are present but not the sole source of truth for API behavior.
+- PostgreSQL RLS is represented in migration/model tests but full PostgreSQL integration tests could not be run in this environment.
+- The worker is not yet a durable PostgreSQL outbox consumer with heartbeat and dead-letter processing.
+- Demo authentication is a local server-set cookie and is intentionally blocked in production.
+- Lockfiles were not generated because registry access was blocked; they were not hand-written.
