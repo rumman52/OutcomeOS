@@ -21,3 +21,7 @@ Sandbox adapters are deterministic and local. Real provider adapters must be add
 ## Operational probes
 
 `/health` is process liveness. `/ready` checks whether the local persistent demo store is available and reports its demo nature. `/worker-health` reports degraded when no worker heartbeat exists.
+
+## Global modular-monolith direction (2026-08-08)
+
+The accepted boundary decision is recorded in `docs/decisions/0001-global-modular-monolith.md`. New framework-independent code begins under `common`, `events`, and `outcomes`; the existing `mvp.py` remains legacy sandbox code until PostgreSQL repositories replace it incrementally. PostgreSQL—not the JSON store—is the intended non-test source of truth.

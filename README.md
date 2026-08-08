@@ -1,8 +1,8 @@
 # OutcomeOS
 
-OutcomeOS is a local competition MVP for a Bangladesh e-commerce performance-marketing journey: sandbox campaign/touchpoint → customer conversation → grounded AI proposal → approved lead/order → verification → delivery and COD evidence → verified outcome → BDT 150 performance fee → BDT 340 contribution profit → dispute credit.
+OutcomeOS is an emerging global, multi-tenant outcome verification and performance billing platform. Its goal is to connect customer journeys to trusted business evidence, determine whether contracted outcomes occurred, calculate exact fees, manage disputes and credits, and deliver consent-aware conversion postbacks.
 
-All provider behavior is deterministic sandbox/mock behavior. Real Meta, WhatsApp, Google, TikTok, Pathao, payment, OIDC, and hosted AI providers are **NOT CONNECTED**.
+The repository is being incrementally transformed from a country-specific deterministic demo. The legacy journey remains sandbox-only while global domain and PostgreSQL foundations replace it. No real advertising, messaging, commerce, payment, identity, fulfilment or hosted-AI provider is currently connected, and this repository is not yet production-ready.
 
 ## Quick start
 
@@ -23,4 +23,4 @@ make dev-worker
 
 Run `make verify` before proposing changes. `make e2e` requires running web/API services.
 
-See `docs/DEMO.md`, `docs/IMPLEMENTATION_STATUS.md`, and `docs/REPOSITORY_AUDIT.md`.
+See the execution plan in `docs/superpowers/plans/2026-08-08-outcomeos-global-platform.md` and the evidence-based status in `docs/IMPLEMENTATION_STATUS.md`. Frozen setup currently requires registry access to generate the missing genuine lockfiles; they are never hand-written.

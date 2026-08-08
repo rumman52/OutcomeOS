@@ -1,23 +1,31 @@
 # Implementation status
 
-OutcomeOS currently provides a deterministic local competition MVP for one Bangladesh Facebook-commerce journey. It is a SANDBOX implementation only; real Meta, WhatsApp, TikTok, Google, courier, payment, hosted AI and production identity providers are NOT CONNECTED.
+## Verified implementation levels
 
-## Implemented sandbox behavior
+OutcomeOS is **in active transformation** from a Bangladesh-specific deterministic sandbox into a global outcome-verification platform. It is not production-ready and no external provider is connected or live-tested.
 
-- Bangla inbound seeded conversation and tenant-scoped seeded product/COD knowledge.
-- Deterministic AI reply/proposal fixture with evidence references and human-approval requirement.
-- Separate lead/order approval, deterministic lead verification, delivery evidence, COD settlement evidence and outcome evaluation steps.
-- Delivery without COD leaves the outcome pending with `COD settlement missing` and creates no fee.
-- COD plus delivery plus verification plus attribution verifies the outcome and creates exactly one BDT 150 performance-fee debit.
-- Replayed sandbox webhooks are idempotent and do not duplicate billable results or ledger debits.
-- Server-calculated contribution profit is BDT 340 after the fee and BDT 490 after dispute reversal credit.
-- Dispute reversal appends a linked BDT 150 credit without deleting or editing the original debit.
-- Next.js route shells exist for the required competition pages and render service-unavailable instead of fallback financial data when the API cannot be reached.
+### Implemented and unit-testable
 
-## Partial / not production-ready
+- Global workspace region value object for ISO country/currency identifiers, BCP 47-shaped locale tags and real IANA timezone validation.
+- Exact money value object using integer minor units, including USD (2), JPY (0) and BHD (3) exponent behavior and explicit mixed-currency rejection.
+- Version 1 provider-neutral canonical event envelope with tenant identity, consent purpose, aware timestamps, payload digests, references, optional exact money and processing status.
+- Explicit outcome state machine for captured through settled/credited, with append-only transition record shape, audit fields and optimistic version increments.
+- Existing tenant-scoped deterministic sandbox behavior remains available only as legacy local/test functionality.
+- Production configuration rejects demo authentication, mock integrations, deterministic AI and the default webhook secret.
 
-- Runtime persistence is still the deterministic local JSON-backed sandbox store; PostgreSQL models and migrations are present but not the sole source of truth for API behavior.
-- PostgreSQL RLS is represented in migration/model tests but full PostgreSQL integration tests could not be run in this environment.
-- The worker is not yet a durable PostgreSQL outbox consumer with heartbeat and dead-letter processing.
-- Demo authentication is a local server-set cookie and is intentionally blocked in production.
-- Lockfiles were not generated because registry access was blocked; they were not hand-written.
+### Sandbox or partial only
+
+- JSON runtime persistence, demo-cookie authentication, deterministic AI, seeded Bangladesh fixture and one-shot worker remain legacy sandbox implementations.
+- PostgreSQL models and the initial Alembic migration are partial and are not yet the sole runtime source of truth.
+- Web routes remain mostly repeated shells rather than complete workflows.
+- RLS is represented by schema assertions, not yet proven through PostgreSQL integration tests in this environment.
+
+### Not implemented / not connected
+
+- OIDC/JWKS authentication, API keys, global production schema, durable outbox worker, production evidence storage, contracts, attribution, billing ledger, disputes, privacy workflows and complete operational UI.
+- Shopify, Stripe, Meta, Google, TikTok, HubSpot, Calendly, WhatsApp, fulfilment providers and hosted LLMs. Adapter interfaces or documentation must never be read as connectivity.
+- Genuine pnpm and uv lockfiles. Generation was attempted with the declared package managers on 2026-08-08 but registry access was rejected by the environment proxy; no lockfile was hand-written.
+
+## Exact next step
+
+Create additive migration `apps/api/migrations/versions/20260808_0002_global_core.py` and PostgreSQL integration fixtures for tenants, memberships, canonical receipts/events, outcome instances/transitions and tenant-aware RLS/foreign-key denial tests. Do not edit the applied `20260804_0001` revision.

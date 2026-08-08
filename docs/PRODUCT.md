@@ -1,25 +1,22 @@
 # Product
 
-OutcomeOS is a multi-tenant AI-powered performance-marketing operating system that connects advertising and customer conversations to verified business outcomes, calculates contribution profit, and charges only for contractually verified results.
+OutcomeOS is a global, multi-tenant outcome verification and performance billing platform for brands, agencies, revenue teams, outcome-based service providers, approved partners, finance users and dispute reviewers.
 
-## Implemented local MVP slice
+Its promise is: **Connect every customer journey to verified business evidence, then bill only for outcomes that actually happened.**
 
-The first vertical is a Bangladesh Facebook-commerce/e-commerce demo. It uses deterministic sandbox adapters only; it does not contact Meta, WhatsApp, Google, TikTok, Pathao, payment, courier, or AI provider APIs.
+## Initial outcome templates
 
-The seeded journey is:
+1. Delivered and paid order.
+2. Attended appointment or completed booking.
+3. Qualified lead accepted by the business.
+4. Paid signup or activated subscription.
 
-1. Local demo sign-in to `Dhaka Demo Commerce`.
-2. Seeded sandbox campaign, ad, spend snapshot, touchpoint, and Messenger-style conversation.
-3. Tenant-scoped knowledge for product price, stock, delivery, COD, return policy, and FAQs.
-4. Deterministic AI answer with evidence references and a human-approved lead/order proposal.
-5. Idempotent lead and order creation in BDT minor units.
-6. Deterministic OTP, duplicate, intent, address-risk, and prior-return verification checks.
-7. Signed sandbox delivery/COD events are accepted by the versioned API surface.
-8. Outcome verification requires order, lead verification, delivery, COD settlement, and attribution evidence.
-9. Versioned contract creates exactly one BDT 150 performance-fee ledger entry.
-10. Contribution profit is calculated server-side as BDT 340 for the acceptance fixture.
-11. Dispute reversal appends a linked credit; original financial facts remain present.
+Cash on delivery is one optional evidence method; no country, language, currency, channel or provider is a product default. Future templates extend versioned definitions rather than country-specific branches.
 
-## Non-goals
+## Release boundary
 
-Real provider approvals, production OIDC, fund holding, campaign publishing, budget changes, voice calling, model fine-tuning, and production compliance certification are outside this local MVP.
+The global core covers tenant configuration, canonical event ingestion, evidence, immutable outcome transitions, contracts, attribution, exact performance billing, invoices/credits/obligations, disputes, assisted conversations, approvals and postback delivery. It does not custody funds, promise global payouts, autonomously publish campaigns or budgets, adjudicate legal disputes, provide a partner marketplace or tax engine, execute user code, or automatically reject a person using a black-box AI score.
+
+## Current truth
+
+Only the global value objects, canonical envelope and outcome state-machine foundation are newly implemented. The existing country-specific deterministic fixture is legacy sandbox behavior. Production persistence, identity, workers, billing, UI workflows and real provider connections remain incomplete; see `docs/IMPLEMENTATION_STATUS.md`.
