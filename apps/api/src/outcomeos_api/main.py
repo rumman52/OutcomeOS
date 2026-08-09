@@ -1,149 +1,145 @@
 from __future__ import annotations
 
+import hmac
 import json
 import time
 from typing import Any
 
-from fastapi import Cookie, FastAPI, Header, HTTPException, Response
+from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
-from outcomeos_api.config import get_settings
-from outcomeos_api.mvp import TENANT, USER, profit, sign, store
-
-settings = get_settings()
-app = FastAPI(title="OutcomeOS API", version="0.1.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+from outcomeos_api.config import Settings, get_settings
+from outcomeos_api.db import create_database_engine
 
 
-class Problem(BaseModel):
-    detail: str
-
-
-def active_tenant(outcomeos_session: str | None = Cookie(default=None)) -> str:
-    if outcomeos_session != USER:
-        raise HTTPException(401, "demo sign-in required")
-    return TENANT
-
-
-@app.get("/health", tags=["operations"])
-def health() -> dict[str, str]:
-    return {"status": "ok"}
-
-
-@app.get("/healthz", tags=["operations"])
-def healthz() -> dict[str, str]:
-    return {"status": "ok", "environment": settings.app_env}
-
-
-@app.get("/ready", tags=["operations"])
-def ready(response: Response) -> dict[str, Any]:
-    ok = store.path.exists()
-    response.status_code = 200 if ok else 503
-    return {
-        "status": "ready" if ok else "unavailable",
-        "database": "json-demo-persistent",
-        "redis": "not_required_for_demo",
-    }
-
-
-@app.get("/worker-health", tags=["operations"])
-def worker(response: Response) -> dict[str, Any]:
-    response.status_code = 503
-    return {
-        "status": "degraded",
-        "worker": "no heartbeat",
-        "queue": "outbox persisted; run make dev-worker",
-    }
-
-
-@app.post("/api/v1/demo/reset")
-def reset() -> dict[str, Any]:
-    if settings.app_env == "production":
-        raise HTTPException(403, "demo reset disabled in production")
-    store.reset()
-    return {"status": "seeded", "tenant_id": TENANT}
-
-
-@app.post("/api/v1/demo/sign-in")
-def signin(response: Response) -> dict[str, Any]:
-    if settings.app_env == "production":
-        raise HTTPException(403, "demo sign-in disabled in production")
-    response.set_cookie(
-        "outcomeos_session", USER, httponly=True, samesite="lax", secure=False
+def create_app(settings: Settings | None = None) -> FastAPI:
+    runtime = settings or get_settings()
+    application = FastAPI(title="OutcomeOS API", version="0.1.0")
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=[runtime.frontend_origin],
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "If-Match"],
     )
-    return {
-        "user": {"id": USER, "email": "demo@outcomeos.local"},
-        "tenant": {"id": TENANT, "name": store.tenant(TENANT)["name"]},
-        "label": "Sandbox / Demo",
-    }
+
+    @application.get("/health", tags=["operations"])
+    def health() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @application.get("/healthz", tags=["operations"])
+    def healthz() -> dict[str, str]:
+        return {"status": "ok", "environment": runtime.app_env}
+
+    @application.get("/ready", tags=["operations"])
+    def ready(response: Response) -> dict[str, Any]:
+        if runtime.persistence_backend == "json_sandbox":
+            from outcomeos_api.mvp import store
+
+            ok = store.path.exists()
+            response.status_code = 200 if ok else 503
+            return {"status": "ready" if ok else "unavailable", "database": "json-sandbox"}
+        try:
+            engine = create_database_engine(runtime.database_url)
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+                revision = connection.execute(
+                    text("SELECT version_num FROM alembic_version")
+                ).scalar_one_or_none()
+            engine.dispose()
+            ok = revision == "20260808_0002"
+            response.status_code = 200 if ok else 503
+            return {
+                "status": "ready" if ok else "unavailable",
+                "database": "postgresql",
+                "migration": revision or "missing",
+            }
+        except SQLAlchemyError:
+            response.status_code = 503
+            return {"status": "unavailable", "database": "postgresql"}
+
+    @application.get("/worker-health", tags=["operations"])
+    def worker_health(response: Response) -> dict[str, str]:
+        response.status_code = 503
+        return {"status": "degraded", "worker": "durable worker is a Milestone 2 capability"}
+
+    if runtime.persistence_backend == "json_sandbox":
+        if runtime.app_env not in {"development", "test"}:
+            raise RuntimeError("JSON sandbox can only be mounted in development or test")
+        _mount_sandbox(application, runtime)
+    return application
 
 
-@app.get("/api/v1/me")
-def me(
-    tid: str = Header(default=TENANT, alias="X-Tenant-Id"),
-    active: str = Cookie(default=None, alias="outcomeos_session"),
-) -> dict[str, Any]:
-    if active != USER or tid != TENANT:
-        raise HTTPException(403, "active tenant membership required")
-    return {"user_id": USER, "tenant_id": TENANT, "role": "admin"}
+def _mount_sandbox(application: FastAPI, settings: Settings) -> None:
+    from outcomeos_api.mvp import TENANT, USER, profit, sign, store
 
+    def sandbox_tenant(
+        session: str | None = Cookie(default=None, alias="outcomeos_session"),
+    ) -> str:
+        if not settings.demo_auth_enabled or session != USER:
+            raise HTTPException(401, "sandbox sign-in required")
+        return TENANT
 
-@app.get("/api/v1/dashboard")
-def dashboard(tid: str = Header(default=TENANT, alias="X-Tenant-Id")) -> dict[str, Any]:
-    if tid != TENANT:
-        raise HTTPException(403, "active tenant membership required")
-    t = store.tenant(tid)
-    return {
-        "tenant": t["name"],
-        "campaigns": t["campaigns"],
-        "ads": t["ads"],
-        "profit": profit(t),
-        "funnel": {
-            "conversations": len(t["conversations"]),
-            "leads": len(t["leads"]),
-            "orders": len(t["orders"]),
-            "outcomes": len(t["outcomes"]),
-            "disputes": len(t["disputes"]),
-        },
-    }
+    @application.post("/api/v1/demo/reset", tags=["sandbox"])
+    def reset() -> dict[str, str]:
+        if not settings.demo_auth_enabled:
+            raise HTTPException(404, "not found")
+        store.reset()
+        return {"status": "seeded", "tenant_id": TENANT}
 
+    @application.post("/api/v1/demo/sign-in", tags=["sandbox"])
+    def sign_in(response: Response) -> dict[str, object]:
+        if not settings.demo_auth_enabled:
+            raise HTTPException(404, "not found")
+        response.set_cookie(
+            "outcomeos_session",
+            USER,
+            httponly=True,
+            samesite="lax",
+            secure=False,
+            max_age=3600,
+        )
+        return {"user": {"id": USER}, "tenant": {"id": TENANT}, "label": "Sandbox / Demo"}
 
-@app.get("/api/v1/conversations")
-def conversations(
-    tid: str = Header(default=TENANT, alias="X-Tenant-Id")
-) -> list[dict[str, Any]]:
-    if tid != TENANT:
-        raise HTTPException(403, "active tenant membership required")
-    return store.tenant(tid)["conversations"]
+    @application.get("/api/v1/me", tags=["sandbox"])
+    def me(tenant_id: str = Depends(sandbox_tenant)) -> dict[str, str]:
+        return {"user_id": USER, "tenant_id": TENANT, "role": "administrator"}
 
+    @application.get("/api/v1/dashboard", tags=["sandbox"])
+    def dashboard(tenant_id: str = Depends(sandbox_tenant)) -> dict[str, Any]:
+        tenant = store.tenant(tenant_id)
+        return {
+            "tenant": tenant["name"],
+            "campaigns": tenant["campaigns"],
+            "ads": tenant["ads"],
+            "profit": profit(tenant),
+            "funnel": {
+                key: len(tenant[key])
+                for key in ("conversations", "leads", "orders", "outcomes", "disputes")
+            },
+        }
 
-@app.post("/api/v1/ai/proposals/{conversation_id}/approve")
-def approve(
-    conversation_id: str,
-    idempotency_key: str = Header(default="demo-approval", alias="Idempotency-Key"),
-    tid: str = Header(default=TENANT, alias="X-Tenant-Id"),
-) -> dict[str, Any]:
-    t = store.tenant(tid)
-    if conversation_id not in {c["id"] for c in t["conversations"]}:
-        raise HTTPException(404, "conversation not found")
-    return store.approve_proposal(tid, idempotency_key)
+    @application.get("/api/v1/conversations", tags=["sandbox"])
+    def conversations(tenant_id: str = Depends(sandbox_tenant)) -> list[dict[str, Any]]:
+        return list(store.tenant(tenant_id)["conversations"])
 
+    @application.post("/api/v1/ai/proposals/{conversation_id}/approve", tags=["sandbox"])
+    def approve(
+        conversation_id: str,
+        idempotency_key: str = Header(default="demo-approval", alias="Idempotency-Key"),
+        tenant_id: str = Depends(sandbox_tenant),
+    ) -> dict[str, Any]:
+        tenant = store.tenant(tenant_id)
+        if conversation_id not in {item["id"] for item in tenant["conversations"]}:
+            raise HTTPException(404, "conversation not found")
+        return store.approve_proposal(tenant_id, idempotency_key)
 
-@app.get("/api/v1/evidence")
-def evidence(tid: str = Header(default=TENANT, alias="X-Tenant-Id")) -> dict[str, Any]:
-    if tid != TENANT:
-        raise HTTPException(403, "active tenant membership required")
-    t = store.tenant(tid)
-    return {
-        k: t[k]
-        for k in [
+    @application.get("/api/v1/evidence", tags=["sandbox"])
+    def evidence(tenant_id: str = Depends(sandbox_tenant)) -> dict[str, Any]:
+        tenant = store.tenant(tenant_id)
+        keys = (
             "touchpoints",
             "ai_runs",
             "verification_checks",
@@ -158,43 +154,32 @@ def evidence(tid: str = Header(default=TENANT, alias="X-Tenant-Id")) -> dict[str
             "shipments",
             "settlement_events",
             "webhook_receipts",
-        ]
-    }
+        )
+        return {key: tenant[key] for key in keys}
+
+    @application.post("/api/v1/sandbox/webhooks/{kind}", tags=["sandbox"])
+    def webhook(
+        kind: str,
+        payload: dict[str, Any],
+        timestamp: int = Header(alias="X-OutcomeOS-Timestamp"),
+        signature: str = Header(alias="X-OutcomeOS-Signature"),
+        tenant_id: str = Depends(sandbox_tenant),
+    ) -> dict[str, Any]:
+        body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        if abs(time.time() - timestamp) > 300 or not hmac.compare_digest(
+            sign(settings.webhook_sandbox_secret, body, timestamp), signature
+        ):
+            raise HTTPException(401, "invalid sandbox webhook signature")
+        mapped = "delivery" if kind in {"delivery", "shipment.delivered"} else "cod"
+        return store.record_evidence(tenant_id, mapped, str(payload.get("event_id", kind)))
+
+    @application.post("/api/v1/leads/verify", tags=["sandbox"])
+    def verify_lead(tenant_id: str = Depends(sandbox_tenant)) -> dict[str, Any]:
+        return store.complete_verification(tenant_id)
+
+    @application.post("/api/v1/disputes/reverse", tags=["sandbox"])
+    def reverse_dispute(tenant_id: str = Depends(sandbox_tenant)) -> dict[str, Any]:
+        return store.dispute_reverse(tenant_id)
 
 
-@app.post("/api/v1/sandbox/webhooks/{kind}")
-def webhook(
-    kind: str,
-    payload: dict[str, Any],
-    x_outcomeos_timestamp: int = Header(alias="X-OutcomeOS-Timestamp"),
-    x_outcomeos_signature: str = Header(alias="X-OutcomeOS-Signature"),
-    tid: str = Header(default=TENANT, alias="X-Tenant-Id"),
-) -> dict[str, Any]:
-    body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
-    if (
-        abs(time.time() - x_outcomeos_timestamp) > 300
-        or sign(settings.webhook_sandbox_secret, body, x_outcomeos_timestamp)
-        != x_outcomeos_signature
-    ):
-        raise HTTPException(401, "invalid sandbox webhook signature")
-    if tid != TENANT:
-        raise HTTPException(403, "active tenant membership required")
-    event_id = str(payload.get("event_id", kind))
-    mapped = "delivery" if kind in {"delivery", "shipment.delivered"} else "cod"
-    return store.record_evidence(tid, mapped, event_id)
-
-
-@app.post("/api/v1/leads/verify")
-def verify_lead(
-    tid: str = Header(default=TENANT, alias="X-Tenant-Id")
-) -> dict[str, Any]:
-    if tid != TENANT:
-        raise HTTPException(403, "active tenant membership required")
-    return store.complete_verification(tid)
-
-
-@app.post("/api/v1/disputes/reverse")
-def reverse(tid: str = Header(default=TENANT, alias="X-Tenant-Id")) -> dict[str, Any]:
-    if tid != TENANT:
-        raise HTTPException(403, "active tenant membership required")
-    return store.dispute_reverse(tid)
+app = create_app()

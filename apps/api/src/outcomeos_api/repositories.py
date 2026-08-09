@@ -27,7 +27,9 @@ class TenantRepository[T: Base]:
         return select(self.model).where(self.model.tenant_id == self.tenant_id)  # type: ignore[attr-defined]
 
     def get(self, record_id: UUID) -> T | None:
-        return self.session.scalar(self.query().where(self.model.id == record_id))
+        return self.session.scalar(
+            self.query().where(self.model.id == record_id)  # type: ignore[attr-defined]
+        )
 
     def add(self, record: T) -> T:
         if not isinstance(record, TenantOwned) or record.tenant_id != self.tenant_id:

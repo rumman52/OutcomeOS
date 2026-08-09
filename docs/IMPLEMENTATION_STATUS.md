@@ -12,20 +12,38 @@ OutcomeOS is **in active transformation** from a Bangladesh-specific determinist
 - Explicit outcome state machine for captured through settled/credited, with append-only transition record shape, audit fields and optimistic version increments.
 - Existing tenant-scoped deterministic sandbox behavior remains available only as legacy local/test functionality.
 - Production configuration rejects demo authentication, mock integrations, deterministic AI and the default webhook secret.
+- Milestone 1 code now includes provider-neutral OIDC/JWKS signature and claim verification,
+  explicit deny-by-default role policy, one-time hashed/scoped API-key primitives, and
+  persisted-identity plus active-membership principal resolution. These boundaries use local
+  deterministic cryptographic fixtures in tests; no live identity provider is connected.
+- Additive revision `20260808_0002_global_core` defines workspace regional settings, OIDC
+  identities, invitations, API keys, external grants, append-only audit events, immutable tenant
+  triggers, expanded RLS, and composite tenant-aware foreign keys without modifying the applied
+  `20260804_0001` revision.
 
 ### Sandbox or partial only
 
 - JSON runtime persistence, demo-cookie authentication, deterministic AI, seeded Bangladesh fixture and one-shot worker remain legacy sandbox implementations.
-- PostgreSQL models and the initial Alembic migration are partial and are not yet the sole runtime source of truth.
+- PostgreSQL is the default runtime backend and JSON wiring is mounted only when explicitly
+  configured as a development/test sandbox. Staging and production validation rejects JSON,
+  demo auth, mocks, deterministic AI, and default secrets. PostgreSQL migration/RLS tests are
+  implemented but have not run in this environment because Docker/PostgreSQL is unavailable.
 - Web routes remain mostly repeated shells rather than complete workflows.
-- RLS is represented by schema assertions, not yet proven through PostgreSQL integration tests in this environment.
+- RLS and composite-FK tests use separate migration-owner and restricted `NOBYPASSRLS` roles,
+  but remain unexecuted in this environment because no PostgreSQL server or Docker executable is
+  available.
 
 ### Not implemented / not connected
 
-- OIDC/JWKS authentication, API keys, global production schema, durable outbox worker, production evidence storage, contracts, attribution, billing ledger, disputes, privacy workflows and complete operational UI.
+- Live OIDC verification, durable outbox worker, production evidence storage, contracts,
+  attribution, billing ledger, disputes, privacy workflows and complete operational UI.
 - Shopify, Stripe, Meta, Google, TikTok, HubSpot, Calendly, WhatsApp, fulfilment providers and hosted LLMs. Adapter interfaces or documentation must never be read as connectivity.
-- Genuine pnpm and uv lockfiles. Generation was attempted with the declared package managers on 2026-08-08 but registry access was rejected by the environment proxy; no lockfile was hand-written.
+- A genuine uv lockfile. `pnpm-lock.yaml` is genuine and its frozen install passes. `uv lock` was
+  attempted again on 2026-08-09, but the environment proxy rejected PyPI; no lockfile was
+  hand-written.
 
 ## Exact next step
 
-Create additive migration `apps/api/migrations/versions/20260808_0002_global_core.py` and PostgreSQL integration fixtures for tenants, memberships, canonical receipts/events, outcome instances/transitions and tenant-aware RLS/foreign-key denial tests. Do not edit the applied `20260804_0001` revision.
+Run frozen uv installation and the PostgreSQL Milestone 1 integration suite in an environment
+with PyPI access and a disposable PostgreSQL 17/pgvector database. Fix any evidence-based failure
+before beginning Milestone 2.

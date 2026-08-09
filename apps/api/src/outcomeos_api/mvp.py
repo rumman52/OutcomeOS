@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-import hashlib, hmac, json, os, threading, uuid
+import hashlib
+import hmac
+import json
+import os
+import threading
+import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 FEE_MINOR = 15000
 TENANT = "11111111-1111-4111-8111-111111111111"
@@ -21,9 +26,7 @@ def digest(x: Any) -> str:
 
 
 def sign(secret: str, body: bytes, ts: int) -> str:
-    return hmac.new(
-        secret.encode(), f"{ts}.".encode() + body, hashlib.sha256
-    ).hexdigest()
+    return hmac.new(secret.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
 
 
 def stable(name: str) -> str:
@@ -67,9 +70,7 @@ class MVPStore:
         self.load()
 
     def load(self) -> None:
-        self.data = (
-            json.loads(self.path.read_text()) if self.path.exists() else self.reset()
-        )
+        self.data = json.loads(self.path.read_text()) if self.path.exists() else self.reset()
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,28 +85,24 @@ class MVPStore:
     def tenant(self, tenant_id: str) -> dict[str, Any]:
         if tenant_id not in self.data["tenants"]:
             raise KeyError("tenant not found")
-        return self.data["tenants"][tenant_id]
+        return cast(dict[str, Any], self.data["tenants"][tenant_id])
 
     def receive_message(self, tenant_id: str, text: str) -> dict[str, Any]:
         with self.lock:
             t = self.tenant(tenant_id)
             c = t["conversations"][0]
-            c["messages"].append(
-                {"direction": "inbound", "text": text, "created_at": now()}
-            )
+            c["messages"].append({"direction": "inbound", "text": text, "created_at": now()})
             t["audit_events"].append(audit("message.received", c["id"]))
             self.save()
-            return c
+            return cast(dict[str, Any], c)
 
-    def approve_proposal(
-        self, tenant_id: str, idem: str = "demo-approval"
-    ) -> dict[str, Any]:
+    def approve_proposal(self, tenant_id: str, idem: str = "demo-approval") -> dict[str, Any]:
         with self.lock:
             t = self.tenant(tenant_id)
             ids = t["ids"]
             key = f"approve:{idem}"
             if key in t["idempotency"]:
-                return t["idempotency"][key]
+                return cast(dict[str, Any], t["idempotency"][key])
             lead = {
                 "id": ids["lead"],
                 "tenant_id": tenant_id,
@@ -179,25 +176,19 @@ class MVPStore:
             ]
             if t["leads"]:
                 t["leads"][0]["stage"] = "verified"
-            t["audit_events"].append(
-                audit("lead.verification_completed", t["ids"]["lead"])
-            )
+            t["audit_events"].append(audit("lead.verification_completed", t["ids"]["lead"]))
             self.evaluate(tenant_id, save=False)
             self.save()
             return {"checks": t["verification_checks"], "outcome": t["outcomes"][0]}
 
-    def record_evidence(
-        self, tenant_id: str, kind: str, event_id: str
-    ) -> dict[str, Any]:
+    def record_evidence(self, tenant_id: str, kind: str, event_id: str) -> dict[str, Any]:
         with self.lock:
             t = self.tenant(tenant_id)
             receipt_key = f"webhook:{kind}:{event_id}"
             if receipt_key in t["idempotency"]:
-                return t["idempotency"][receipt_key]
+                return cast(dict[str, Any], t["idempotency"][receipt_key])
             field = "shipments" if kind == "delivery" else "settlement_events"
-            event_type = (
-                "shipment.delivered" if kind == "delivery" else "payment.cod_settled"
-            )
+            event_type = "shipment.delivered" if kind == "delivery" else "payment.cod_settled"
             rec = {
                 "id": stable(f"{tenant_id}:{kind}:{event_id}"),
                 "tenant_id": tenant_id,
@@ -236,8 +227,7 @@ class MVPStore:
             "customer_verified": bool(t["verification_checks"])
             and all(c["result"] == "passed" for c in t["verification_checks"]),
             "attribution_eligible": bool(t["attribution_results"]),
-            "order_confirmed": bool(t["orders"])
-            and t["orders"][0]["status"] == "confirmed",
+            "order_confirmed": bool(t["orders"]) and t["orders"][0]["status"] == "confirmed",
             "delivery_received": bool(t.get("shipments")),
             "cod_settled": bool(t.get("settlement_events")),
             "contract_eligible": t["contract_versions"][0]["status"] == "active",
@@ -289,9 +279,7 @@ class MVPStore:
             }
             t["billable_results"] = [bill]
             t["ledger_entries"].append(led)
-            t["audit_events"].append(
-                audit("outcome.billable_fee_created", outcome["id"])
-            )
+            t["audit_events"].append(audit("outcome.billable_fee_created", outcome["id"]))
         if save:
             self.save()
         return outcome
@@ -300,7 +288,7 @@ class MVPStore:
         with self.lock:
             t = self.tenant(tenant_id)
             if t["disputes"] and t["disputes"][0]["status"] == "reversed":
-                return t["disputes"][0]
+                return cast(dict[str, Any], t["disputes"][0])
             d = {
                 "id": t["ids"]["dispute"],
                 "tenant_id": tenant_id,
@@ -424,9 +412,7 @@ def tenant_seed(tenant_id: str, name: str) -> dict[str, Any]:
                 "confidence": "exact",
             }
         ],
-        "contacts": [
-            {"id": ids["contact"], "tenant_id": tenant_id, "display_name": "Maya Akter"}
-        ],
+        "contacts": [{"id": ids["contact"], "tenant_id": tenant_id, "display_name": "Maya Akter"}],
         "conversations": [
             {
                 "id": ids["conversation"],
@@ -447,7 +433,8 @@ def tenant_seed(tenant_id: str, name: str) -> dict[str, Any]:
                 "tenant_id": tenant_id,
                 "title": "Product, price, stock and policy",
                 "chunks": [
-                    "Sage green linen set price BDT 1500; stock 8; Dhaka delivery BDT 80; COD accepted; returns within 7 days."
+                    "Sage green linen set price BDT 1500; stock 8; Dhaka delivery BDT 80; "
+                    "COD accepted; returns within 7 days."
                 ],
             }
         ],
@@ -455,7 +442,10 @@ def tenant_seed(tenant_id: str, name: str) -> dict[str, Any]:
             {
                 "id": "ai-1",
                 "tenant_id": tenant_id,
-                "answer": "জি, sage green linen set স্টকে আছে। দাম BDT 1,500। Dhaka delivery BDT 80 এবং COD হবে।",
+                "answer": (
+                    "জি, sage green linen set স্টকে আছে। দাম BDT 1,500। "
+                    "Dhaka delivery BDT 80 এবং COD হবে।"
+                ),
                 "evidence": ["kd-1"],
                 "tool_proposals": [
                     {"tool": "create_lead"},
@@ -506,9 +496,7 @@ def seed_data() -> dict[str, Any]:
     ]
     return {
         "tenants": {TENANT: tenant, OTHER_TENANT: other},
-        "users": {
-            USER: {"id": USER, "email": "demo@outcomeos.local", "memberships": [TENANT]}
-        },
+        "users": {USER: {"id": USER, "email": "demo@outcomeos.local", "memberships": [TENANT]}},
     }
 
 

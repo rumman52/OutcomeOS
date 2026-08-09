@@ -30,5 +30,7 @@ Never edit `20260804_0001_mvp_tenant_schema.py`. Each milestone uses an additive
 
 - [x] Repository and current runtime inspected; legacy JSON persistence, demo auth, partial schema, deterministic AI/worker and repeated web shells confirmed.
 - [x] Global Money/region primitives, canonical event v1 envelope and explicit outcome state machine added with focused tests.
-- [ ] Generate lockfiles using pnpm 10.14.0 and uv (blocked by registry proxy on 2026-08-08; do not hand-write).
-- [ ] Next: create additive global-core migration and PostgreSQL tenant-isolation integration harness.
+- [x] Genuine pnpm lockfile generated and verified with a frozen install.
+- [ ] Generate the uv lockfile (blocked again by the PyPI proxy on 2026-08-09; do not hand-write).
+- [x] Add global-core migration, OIDC/RBAC/API-key boundaries, production PostgreSQL wiring, and a restricted-role PostgreSQL isolation harness.
+- [ ] Run and pass the PostgreSQL harness in an environment with PostgreSQL before Milestone 2.
