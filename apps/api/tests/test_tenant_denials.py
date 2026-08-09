@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
@@ -22,7 +24,7 @@ from outcomeos_api.repositories import TenantRepository
 
 
 @pytest.fixture()
-def session(tenant_ids):
+def session(tenant_ids: dict[str, Any]) -> Iterator[Session]:
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
     with Session(engine) as session:
@@ -36,7 +38,7 @@ def session(tenant_ids):
         yield session
 
 
-def records_for(tenant_id):
+def records_for(tenant_id: UUID) -> list[Base]:
     document_id, order_id, outcome_id, billable_id = uuid4(), uuid4(), uuid4(), uuid4()
     return [
         Contact(
@@ -123,7 +125,9 @@ def records_for(tenant_id):
         LedgerEntry,
     ],
 )
-def test_tenant_a_cannot_read_or_delete_tenant_b_business_data(session, tenant_ids, model):
+def test_tenant_a_cannot_read_or_delete_tenant_b_business_data(
+    session: Session, tenant_ids: dict[str, Any], model: type[Base]
+) -> None:
     tenant_a, tenant_b = UUID(tenant_ids["tenant_a"]), UUID(tenant_ids["tenant_b"])
     records = records_for(tenant_b)
     session.add_all(records)
@@ -132,9 +136,10 @@ def test_tenant_a_cannot_read_or_delete_tenant_b_business_data(session, tenant_i
 
     session.info["tenant_id"] = tenant_a
     repository = TenantRepository(session, model)
-    assert repository.get(target.id) is None
-    assert repository.delete(target.id) is False
-    assert session.get(model, target.id) is not None
+    target_id = target.id  # type: ignore[attr-defined]
+    assert repository.get(target_id) is None
+    assert repository.delete(target_id) is False
+    assert session.get(model, target_id) is not None
 
 
 @pytest.mark.parametrize(
@@ -150,7 +155,9 @@ def test_tenant_a_cannot_read_or_delete_tenant_b_business_data(session, tenant_i
         LedgerEntry,
     ],
 )
-def test_tenant_a_cannot_insert_tenant_b_record(session, tenant_ids, model):
+def test_tenant_a_cannot_insert_tenant_b_record(
+    session: Session, tenant_ids: dict[str, Any], model: type[Base]
+) -> None:
     tenant_a, tenant_b = UUID(tenant_ids["tenant_a"]), UUID(tenant_ids["tenant_b"])
     session.info["tenant_id"] = tenant_a
     record = next(item for item in records_for(tenant_b) if isinstance(item, model))

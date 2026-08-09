@@ -12,7 +12,11 @@ OutcomeOS is a modular monolith with canonical code in these locations:
 
 ## Current persistence
 
-The local competition demo persists deterministic seeded state in a JSON file (`OUTCOMEOS_DEMO_DB`, default `/tmp/outcomeos-demo.json`) so refresh and service restart preserve the journey without provider credentials. PostgreSQL remains the intended source of truth and the Alembic history is canonical, but full RLS/table breadth is marked partial until integration evidence exists.
+PostgreSQL is the default runtime backend. The local competition demo can persist deterministic
+seeded state in a JSON file only when `PERSISTENCE_BACKEND=json_sandbox` is explicitly selected in
+development or test. Staging and production reject that setting. The Alembic history is canonical;
+full RLS enforcement remains unverified until the checked-in restricted-role PostgreSQL integration
+suite runs in an environment with PostgreSQL.
 
 ## Provider boundary
 
@@ -20,7 +24,9 @@ Sandbox adapters are deterministic and local. Real provider adapters must be add
 
 ## Operational probes
 
-`/health` is process liveness. `/ready` checks whether the local persistent demo store is available and reports its demo nature. `/worker-health` reports degraded when no worker heartbeat exists.
+`/health` is process liveness. `/ready` checks PostgreSQL connectivity and the expected migration
+head, or reports the explicitly selected local JSON sandbox. `/worker-health` remains degraded
+because the durable worker is a Milestone 2 capability.
 
 ## Global modular-monolith direction (2026-08-08)
 

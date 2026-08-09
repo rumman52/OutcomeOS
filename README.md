@@ -23,4 +23,4 @@ make dev-worker
 
 Run `make verify` before proposing changes. `make e2e` requires running web/API services.
 
-See the execution plan in `docs/superpowers/plans/2026-08-08-outcomeos-global-platform.md` and the evidence-based status in `docs/IMPLEMENTATION_STATUS.md`. Frozen setup currently requires registry access to generate the missing genuine lockfiles; they are never hand-written.
+See the execution plan in `docs/superpowers/plans/2026-08-08-outcomeos-global-platform.md` and the evidence-based status in `docs/IMPLEMENTATION_STATUS.md`. The genuine pnpm lockfile passes frozen installation. A genuine uv lockfile is still blocked on registry access and will never be hand-written.

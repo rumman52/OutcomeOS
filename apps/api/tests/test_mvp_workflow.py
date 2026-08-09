@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import json
 import time
+from pathlib import Path
 
 import pytest
 
@@ -8,8 +11,8 @@ from outcomeos_api.mvp import FEE_MINOR, TENANT, MVPStore, profit, sign
 
 
 def test_bangladesh_journey_separates_approval_delivery_cod_and_dispute(
-    tmp_path, monkeypatch
-):
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("OUTCOMEOS_DEMO_DB", str(tmp_path / "demo.json"))
     s = MVPStore()
     s.reset()
@@ -47,18 +50,30 @@ def test_bangladesh_journey_separates_approval_delivery_cod_and_dispute(
     assert s2.tenant(TENANT)["orders"][0]["id"] == approved["order"]["id"]
 
 
-def test_api_delivery_and_cod_webhooks_are_distinct_and_idempotent():
+def test_api_delivery_and_cod_webhooks_are_distinct_and_idempotent() -> None:
     pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
-    from outcomeos_api.main import app
+    from httpx import Response
 
-    client = TestClient(app)
+    from outcomeos_api.config import Settings
+    from outcomeos_api.main import create_app
+
+    client = TestClient(
+        create_app(
+            Settings(
+                app_env="test",
+                persistence_backend="json_sandbox",
+                demo_auth_enabled=True,
+            )
+        )
+    )
     client.post("/api/v1/demo/reset")
+    client.post("/api/v1/demo/sign-in")
     conversation_id = client.get("/api/v1/conversations").json()[0]["id"]
     client.post(f"/api/v1/ai/proposals/{conversation_id}/approve")
     client.post("/api/v1/leads/verify")
 
-    def signed_post(kind: str, event_id: str):
+    def signed_post(kind: str, event_id: str) -> Response:
         payload = {"event_id": event_id}
         body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
         ts = int(time.time())
@@ -67,9 +82,7 @@ def test_api_delivery_and_cod_webhooks_are_distinct_and_idempotent():
             json=payload,
             headers={
                 "X-OutcomeOS-Timestamp": str(ts),
-                "X-OutcomeOS-Signature": sign(
-                    get_settings().webhook_sandbox_secret, body, ts
-                ),
+                "X-OutcomeOS-Signature": sign(get_settings().webhook_sandbox_secret, body, ts),
             },
         )
 
@@ -85,12 +98,5 @@ def test_api_delivery_and_cod_webhooks_are_distinct_and_idempotent():
     evidence = client.get("/api/v1/evidence").json()
     assert len(evidence["billable_results"]) == 1
     assert (
-        len(
-            [
-                entry
-                for entry in evidence["ledger_entries"]
-                if entry["direction"] == "debit"
-            ]
-        )
-        == 1
+        len([entry for entry in evidence["ledger_entries"] if entry["direction"] == "debit"]) == 1
     )

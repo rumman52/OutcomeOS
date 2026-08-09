@@ -22,14 +22,14 @@ lint:
 
 typecheck:
 	pnpm typecheck
-	uv run --project apps/api mypy apps/api/src apps/api/tests
+	uv run --project apps/api mypy --config-file apps/api/pyproject.toml apps/api/src apps/api/tests
 
 test:
 	pnpm test
 	uv run --project apps/api pytest apps/api/tests
 
 test-integration:
-	uv run --project apps/api pytest apps/api/tests -m "not e2e"
+	uv run --project apps/api pytest apps/api/tests/integration -m integration
 
 e2e:
 	pnpm e2e

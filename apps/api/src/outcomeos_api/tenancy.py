@@ -41,13 +41,20 @@ def sign_job_context(context: JobTenantContext, secret: bytes) -> str:
         sort_keys=True,
     ).encode()
     signature = hmac.new(secret, payload, hashlib.sha256).digest()
-    return base64.urlsafe_b64encode(payload + b"." + signature).decode()
+    return (
+        base64.urlsafe_b64encode(payload).rstrip(b"=")
+        + b"."
+        + base64.urlsafe_b64encode(signature).rstrip(b"=")
+    ).decode()
 
 
 def verify_job_context(token: str, secret: bytes, *, now: int | None = None) -> JobTenantContext:
     try:
-        raw = base64.urlsafe_b64decode(token.encode())
-        payload, signature = raw.rsplit(b".", 1)
+        encoded_payload, encoded_signature = token.encode().split(b".", 1)
+        payload = base64.urlsafe_b64decode(encoded_payload + b"=" * (-len(encoded_payload) % 4))
+        signature = base64.urlsafe_b64decode(
+            encoded_signature + b"=" * (-len(encoded_signature) % 4)
+        )
         if not hmac.compare_digest(signature, hmac.new(secret, payload, hashlib.sha256).digest()):
             raise ValueError("invalid job context signature")
         data: dict[str, Any] = json.loads(payload)

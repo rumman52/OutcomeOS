@@ -24,6 +24,19 @@ jobs:
       - run: pnpm --filter @outcomeos/web test:e2e
   api:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: outcomeos_test
+          POSTGRES_USER: outcomeos
+          POSTGRES_PASSWORD: outcomeos
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U outcomeos -d outcomeos_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      INTEGRATION_DATABASE_URL: postgresql+psycopg://outcomeos:outcomeos@localhost:5432/outcomeos_test
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -33,8 +46,11 @@ jobs:
       - run: uv sync --project apps/api --frozen
       - run: uv run --project apps/api ruff check apps/api scripts/validate_migrations.py
       - run: uv run --project apps/api ruff format --check apps/api scripts/validate_migrations.py
-      - run: uv run --project apps/api mypy apps/api/src apps/api/tests
+      - run: uv run --project apps/api mypy --config-file apps/api/pyproject.toml apps/api/src apps/api/tests
       - run: uv run --project apps/api pytest apps/api/tests --cov=outcomeos_api --cov-report=term-missing --cov-fail-under=90
+      - run: make test-integration
       - run: uv run --project apps/api python scripts/validate_migrations.py
+      - run: uv build --project apps/api
       - name: Secret scanning
         run: uv run --project apps/api detect-secrets scan --all-files --exclude-files 'pnpm-lock.yaml' > /tmp/secrets.json && test "$(python -c 'import json; print(len(json.load(open("/tmp/secrets.json"))["results"]))')" = 0
+      - run: git diff --check

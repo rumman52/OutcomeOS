@@ -14,3 +14,11 @@
 ## Remaining security work
 
 Full PostgreSQL RLS enforcement, composite tenant foreign keys across the entire required schema, production OIDC, secrets management, rate limiting, object quarantine, backup/restore evidence, and threat-model signoff remain required before production use.
+
+## Milestone 1 security boundary
+
+Additive schema and application code now define provider-neutral OIDC/JWKS verification, persisted
+identity-to-membership resolution, explicit role permissions, hashed scoped API keys, expanded RLS,
+immutable tenant identifiers, and composite tenant foreign keys. No live identity provider is
+claimed. The PostgreSQL enforcement suite must pass under its restricted `NOBYPASSRLS` role before
+these controls can be described as operationally verified.

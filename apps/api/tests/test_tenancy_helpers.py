@@ -1,4 +1,5 @@
 import time
+from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
@@ -12,7 +13,7 @@ from outcomeos_api.tenancy import (
 )
 
 
-def test_tenant_namespaces_and_signed_job_context(tenant_ids):
+def test_tenant_namespaces_and_signed_job_context(tenant_ids: dict[str, Any]) -> None:
     tenant_id = UUID(tenant_ids["tenant_a"])
     assert object_key(tenant_id, "evidence", "item.pdf").startswith(f"tenants/{tenant_id}/")
     assert cache_key(tenant_id, "contact", "42") == f"tenant:{tenant_id}:contact:42"
@@ -23,6 +24,6 @@ def test_tenant_namespaces_and_signed_job_context(tenant_ids):
         verify_job_context(token, b"wrong-secret")
 
 
-def test_object_key_rejects_traversal(tenant_ids):
+def test_object_key_rejects_traversal(tenant_ids: dict[str, Any]) -> None:
     with pytest.raises(ValueError):
         object_key(UUID(tenant_ids["tenant_a"]), "../other-tenant/secret")
