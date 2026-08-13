@@ -38,12 +38,12 @@ OutcomeOS is **in active transformation** from a Bangladesh-specific determinist
 - Live OIDC verification, durable outbox worker, production evidence storage, contracts,
   attribution, billing ledger, disputes, privacy workflows and complete operational UI.
 - Shopify, Stripe, Meta, Google, TikTok, HubSpot, Calendly, WhatsApp, fulfilment providers and hosted LLMs. Adapter interfaces or documentation must never be read as connectivity.
-- A genuine uv lockfile. `pnpm-lock.yaml` is genuine and its frozen install passes. `uv lock` was
-  attempted again on 2026-08-09, but the environment proxy rejected PyPI; no lockfile was
-  hand-written.
+- CI proof for the Milestone 1 PostgreSQL 17/pgvector boundary remains pending. The checked-in,
+  uv-generated `apps/api/uv.lock` passes both `uv lock --check` and frozen synchronization; the
+  pnpm lockfile also passes frozen installation.
 
 ## Exact next step
 
-Run frozen uv installation and the PostgreSQL Milestone 1 integration suite in an environment
-with PyPI access and a disposable PostgreSQL 17/pgvector database. Fix any evidence-based failure
-before beginning Milestone 2.
+Run the Milestone 1 integration suite in CI with its disposable PostgreSQL 17/pgvector service,
+review the required zero-skip evidence, and fix any evidence-based failure before beginning
+Milestone 2.
