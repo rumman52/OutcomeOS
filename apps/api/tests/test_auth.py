@@ -1,31 +1,31 @@
 from datetime import UTC, datetime, timedelta
-from typing import cast
 from uuid import uuid4
 
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from jwt.algorithms import RSAAlgorithm
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from outcomeos_api.auth.api_keys import ApiKeyHasher
 from outcomeos_api.auth.invitations import InvitationTokenHasher
-from outcomeos_api.auth.jwt import JwtVerifier, TokenVerificationError
+from outcomeos_api.auth.jwt import JwtVerifier, TokenVerificationError, load_oidc_jwks
 from outcomeos_api.auth.policy import Permission, Role, authorize
 from outcomeos_api.auth.service import principal_for_api_key, principal_for_oidc_claims
 from outcomeos_api.db import TenantAccessError
 from outcomeos_api.models import ApiKey, Base, Membership, OidcIdentity, Tenant, User
 
 
-def jwt_fixture() -> tuple[object, dict[str, object]]:
+def jwt_fixture() -> tuple[RSAPrivateKey, dict[str, object]]:
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     jwk = RSAAlgorithm.to_jwk(key.public_key(), as_dict=True)
     jwk.update({"kid": "fixture-key", "use": "sig", "alg": "RS256"})
     return key, {"keys": [jwk]}
 
 
-def token_for(key: object, **overrides: object) -> str:
+def token_for(key: RSAPrivateKey, **overrides: object) -> str:
     now = datetime.now(UTC)
     claims: dict[str, object] = {
         "iss": "https://identity.test",
@@ -35,7 +35,7 @@ def token_for(key: object, **overrides: object) -> str:
         "exp": now + timedelta(minutes=5),
     }
     claims.update(overrides)
-    return cast(str, jwt.encode(claims, key, algorithm="RS256", headers={"kid": "fixture-key"}))
+    return jwt.encode(claims, key, algorithm="RS256", headers={"kid": "fixture-key"})
 
 
 def test_oidc_jwks_verification_and_claim_rejections() -> None:
@@ -50,6 +50,38 @@ def test_oidc_jwks_verification_and_claim_rejections() -> None:
     ):
         with pytest.raises(TokenVerificationError):
             verifier.verify(token_for(key, **overrides))
+
+
+def test_oidc_rejects_bad_headers_and_jwks() -> None:
+    key, jwks = jwt_fixture()
+    verifier = JwtVerifier(issuer="https://identity.test", audience="outcomeos-api", jwks=jwks)
+    for token in (
+        "malformed",
+        jwt.encode({"sub": "x"}, key, algorithm="RS256"),
+        jwt.encode({"sub": "x"}, key, algorithm="RS256", headers={"kid": "unknown"}),
+    ):
+        with pytest.raises(TokenVerificationError):
+            verifier.verify(token)
+    with pytest.raises(ValueError, match="at least one"):
+        JwtVerifier(issuer="https://identity.test", audience="api", jwks={"keys": []})
+
+
+def test_oidc_endpoint_validation_fails_before_network() -> None:
+    for kwargs in (
+        {"issuer": "http://identity.test", "jwks_url": None, "discovery_url": None},
+        {
+            "issuer": "https://identity.test",
+            "jwks_url": "https://attacker.test/jwks",
+            "discovery_url": None,
+        },
+        {
+            "issuer": "https://identity.test",
+            "jwks_url": "https://user@identity.test/jwks",
+            "discovery_url": None,
+        },
+    ):
+        with pytest.raises(ValueError):
+            load_oidc_jwks(**kwargs)  # type: ignore[arg-type]
 
 
 def test_policy_is_explicit_and_deny_by_default() -> None:

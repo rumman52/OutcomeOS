@@ -60,7 +60,7 @@ class JwtVerifier:
             if not isinstance(subject, str) or not subject:
                 raise TokenVerificationError("invalid subject")
             audience = claims["aud"]
-            if not isinstance(audience, (str, list)):
+            if not isinstance(audience, str | list):
                 raise TokenVerificationError("invalid audience")
             return OidcClaims(
                 issuer=str(claims["iss"]),

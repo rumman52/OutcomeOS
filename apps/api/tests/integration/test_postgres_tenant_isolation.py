@@ -15,7 +15,10 @@ pytestmark = pytest.mark.integration
 def database_url() -> str:
     url = os.getenv("INTEGRATION_DATABASE_URL")
     if not url:
-        pytest.skip("INTEGRATION_DATABASE_URL is required")
+        pytest.fail(
+            "INTEGRATION_DATABASE_URL is required for the PostgreSQL integration suite",
+            pytrace=False,
+        )
     return url
 
 

@@ -18,7 +18,8 @@ dev-worker:
 
 lint:
 	pnpm lint
-	uv run --project apps/api ruff check apps/api
+	uv run --project apps/api ruff check apps/api scripts/validate_migrations.py
+	uv run --project apps/api ruff format --check apps/api scripts/validate_migrations.py
 
 typecheck:
 	pnpm typecheck
@@ -26,7 +27,7 @@ typecheck:
 
 test:
 	pnpm test
-	uv run --project apps/api pytest apps/api/tests
+	uv run --project apps/api pytest apps/api/tests --ignore=apps/api/tests/integration --cov=outcomeos_api --cov-report=term-missing --cov-fail-under=90
 
 test-integration:
 	uv run --project apps/api pytest apps/api/tests/integration -m integration
@@ -47,8 +48,8 @@ migrate:
 seed:
 	uv run --project apps/api python scripts/seed.py
 
-verify: lint typecheck test build migrations-check
-	@echo "E2E available via make e2e after starting web/API"
+verify: lint typecheck test test-integration build migrations-check e2e
+	git diff --check
 
 infra-up:
 	docker compose up -d
