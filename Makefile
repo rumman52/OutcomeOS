@@ -1,4 +1,4 @@
-.PHONY: setup install dev dev-web dev-api dev-worker lint typecheck test test-integration e2e build migrations-check migrate seed verify infra-up infra-down
+.PHONY: setup install dev dev-web dev-api dev-worker lint typecheck test test-web test-api test-integration e2e build migrations-check migrate seed verify infra-up infra-down
 
 setup install:
 	pnpm install --frozen-lockfile
@@ -26,7 +26,13 @@ typecheck:
 	uv run --project apps/api mypy --config-file apps/api/pyproject.toml apps/api/src apps/api/tests
 
 test:
+	$(MAKE) test-web
+	$(MAKE) test-api
+
+test-web:
 	pnpm test
+
+test-api:
 	uv run --project apps/api pytest apps/api/tests --ignore=apps/api/tests/integration --cov=outcomeos_api --cov-report=term-missing --cov-fail-under=90
 
 test-integration:

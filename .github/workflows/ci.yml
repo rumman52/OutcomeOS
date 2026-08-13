@@ -14,8 +14,15 @@ jobs:
         with: { version: 10.14.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
+      - uses: astral-sh/setup-uv@v6
+        with: { enable-cache: true }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @outcomeos/web check
+      - run: uv sync --project apps/api --frozen
+      - run: pnpm --filter @outcomeos/web lint
+      - run: pnpm --filter @outcomeos/web typecheck
+      - run: make test-web
       - run: pnpm --filter @outcomeos/web build
         env:
           DEMO_AUTH_ENABLED: "false"
@@ -47,7 +54,7 @@ jobs:
       - run: uv run --project apps/api ruff check apps/api scripts/validate_migrations.py
       - run: uv run --project apps/api ruff format --check apps/api scripts/validate_migrations.py
       - run: uv run --project apps/api mypy --config-file apps/api/pyproject.toml apps/api/src apps/api/tests
-      - run: make test
+      - run: make test-api
       - run: make test-integration
       - run: uv run --project apps/api python scripts/validate_migrations.py
       - run: uv build --project apps/api
