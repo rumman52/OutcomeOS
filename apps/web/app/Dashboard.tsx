@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+
 type DashboardData = {
   tenant: string;
   campaigns: Array<{ name: string; spend_minor: number; currency: string }>;
@@ -11,7 +13,11 @@ type Props = { section?: string };
 async function getDashboard(): Promise<{ data?: DashboardData; error?: string }> {
   const origin = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:8000";
   try {
-    const response = await fetch(`${origin}/api/v1/dashboard`, { cache: "no-store" });
+    const session = (await cookies()).get("outcomeos_session")?.value;
+    const response = await fetch(`${origin}/api/v1/dashboard`, {
+      cache: "no-store",
+      headers: session ? { cookie: `outcomeos_session=${encodeURIComponent(session)}` } : {},
+    });
     if (response.ok) return { data: (await response.json()) as DashboardData };
     return { error: `API returned ${response.status}` };
   } catch (error) {
