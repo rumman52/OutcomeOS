@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  use: { baseURL: "http://127.0.0.1:4173" },
+  use: { baseURL: "http://localhost:4173" },
   webServer: [
     {
       command:
@@ -12,8 +12,8 @@ export default defineConfig({
     },
     {
       command:
-        "APP_ENV=test DEMO_AUTH_ENABLED=true MOCK_INTEGRATIONS_ENABLED=true NEXT_PUBLIC_API_ORIGIN=http://127.0.0.1:8000 pnpm dev --hostname 127.0.0.1 --port 4173",
-      url: "http://127.0.0.1:4173/login",
+        "APP_ENV=test DEMO_AUTH_ENABLED=true MOCK_INTEGRATIONS_ENABLED=true NEXT_PUBLIC_API_ORIGIN=http://127.0.0.1:8000 pnpm dev --hostname localhost --port 4173",
+      url: "http://localhost:4173/login",
       reuseExistingServer: false,
     },
   ],

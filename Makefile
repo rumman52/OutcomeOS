@@ -18,8 +18,8 @@ dev-worker:
 
 lint:
 	pnpm lint
-	uv run --project apps/api ruff check apps/api scripts/validate_migrations.py
-	uv run --project apps/api ruff format --check apps/api scripts/validate_migrations.py
+	uv run --project apps/api ruff check apps/api scripts/check_secret_scan.py scripts/validate_migrations.py
+	uv run --project apps/api ruff format --check apps/api scripts/check_secret_scan.py scripts/validate_migrations.py
 
 typecheck:
 	pnpm typecheck
