@@ -110,14 +110,14 @@ def _provision_api_key(engine: Engine, settings: Settings) -> tuple[UUID, str]:
             text(
                 "INSERT INTO api_keys "
                 "(id,created_at,tenant_id,name,prefix,key_digest,scopes) "
-                "VALUES (:id,now(),:tenant,'integration',:prefix,:digest,:scopes)"
+                "VALUES (:id,now(),:tenant,'integration',:prefix,:digest,CAST(:scopes AS jsonb))"
             ),
             {
                 "id": key_id,
                 "tenant": tenant_id,
                 "prefix": generated.prefix,
                 "digest": generated.digest,
-                "scopes": ["integration:manage"],
+                "scopes": json.dumps(["integration:manage"]),
             },
         )
     return tenant_id, generated.plaintext
