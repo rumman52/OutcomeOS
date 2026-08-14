@@ -43,3 +43,7 @@ SHA-256 metadata verification, and server-side encryption requests.
 ## Global modular-monolith direction (2026-08-08)
 
 The accepted boundary decision is recorded in `docs/decisions/0001-global-modular-monolith.md`. New framework-independent code begins under `common`, `events`, and `outcomes`; the existing `mvp.py` remains legacy sandbox code until PostgreSQL repositories replace it incrementally. PostgreSQL—not the JSON store—is the intended non-test source of truth.
+
+## Secure public ingress
+
+Public ingress resolves an opaque token through a security-definer PostgreSQL function returning only tenant and endpoint IDs. Authentication covers exact raw bytes before strict canonical parsing. Encrypted evidence storage precedes one atomic receipt, canonical-event, and pending-outbox transaction; outbox processing remains outside Part 2.

@@ -1,3 +1,4 @@
+import base64
 from functools import lru_cache
 from typing import Literal
 
@@ -25,6 +26,11 @@ class Settings(BaseSettings):
     integration_keyring: str | None = None
     integration_active_key_id: str | None = None
     integration_secret_overlap_seconds: int = 300
+    integration_secret_lifetime_seconds: int = 2_592_000
+    integration_endpoint_token_bytes: int = 32
+    webhook_max_body_bytes: int = 1_000_000
+    webhook_replay_window_seconds: int = 300
+    ingestion_job_kind: str = "ingest.canonical_event.v1"
     ai_provider: str = "deterministic_sandbox"
     ai_model: str = "deterministic-sandbox-v1"
     ai_api_key: str | None = None
@@ -61,7 +67,16 @@ class Settings(BaseSettings):
             and (self.oidc_jwks_url or self.oidc_discovery_url)
         ):
             raise ValueError("OIDC issuer, audience, and JWKS or discovery are required")
-        if self.s3_max_object_bytes < 1 or self.integration_secret_overlap_seconds < 0:
+        if (
+            self.s3_max_object_bytes < 1
+            or self.webhook_max_body_bytes < 1
+            or self.webhook_replay_window_seconds < 1
+            or self.integration_secret_lifetime_seconds < 1
+            or self.integration_secret_overlap_seconds < 0
+            or self.integration_secret_overlap_seconds >= self.integration_secret_lifetime_seconds
+            or self.integration_endpoint_token_bytes < 32
+            or not self.ingestion_job_kind
+        ):
             raise ValueError("storage limit must be positive and secret overlap cannot be negative")
         if self.app_env in {"staging", "production"} and (
             not self.integration_keyring
@@ -75,6 +90,26 @@ class Settings(BaseSettings):
                 "are required in staging and production"
             )
         return self
+
+    def parsed_integration_keyring(self) -> dict[str, bytes]:
+        """Parse ``key-id:base64-key`` entries and reject ambiguous or weak key material."""
+        if not self.integration_keyring or not self.integration_active_key_id:
+            raise ValueError("integration keyring is not configured")
+        keys: dict[str, bytes] = {}
+        try:
+            for entry in self.integration_keyring.split(","):
+                key_id, encoded = entry.split(":", 1)
+                if not key_id or key_id in keys:
+                    raise ValueError
+                key = base64.b64decode(encoded, validate=True)
+                if len(key) != 32:
+                    raise ValueError
+                keys[key_id] = key
+        except (ValueError, TypeError) as error:
+            raise ValueError("invalid integration keyring") from error
+        if self.integration_active_key_id not in keys:
+            raise ValueError("active integration key is unavailable")
+        return keys
 
 
 @lru_cache

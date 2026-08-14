@@ -32,3 +32,7 @@ obtain keyring values from a production secret manager and must never log plaint
 Staging and production startup fails closed when integration key identifiers are absent, local S3
 credentials are retained, or TLS-required object storage uses a plaintext endpoint. Database RLS is
 forced and tenant-owned append-only evidence rejects update and delete operations.
+
+## Public webhook contract
+
+Clients send exactly one `X-OutcomeOS-Timestamp` Unix-seconds header and one `X-OutcomeOS-Signature: v1=<lowercase-hex-hmac>` header. HMAC-SHA-256 signs `timestamp_header_bytes + b"." + raw_request_body`. Unknown, inactive, malformed, stale, and invalid requests disclose no tenant information. Secrets are AES-256-GCM encrypted and public tokens are stored only as SHA-256 digests.

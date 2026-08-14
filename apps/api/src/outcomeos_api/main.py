@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from outcomeos_api.config import Settings, get_settings
 from outcomeos_api.db import create_database_engine
+from outcomeos_api.migrations import EXPECTED_MIGRATION_HEAD
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -49,7 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     text("SELECT version_num FROM alembic_version")
                 ).scalar_one_or_none()
             engine.dispose()
-            ok = revision == "20260808_0002"
+            ok = revision == EXPECTED_MIGRATION_HEAD
             response.status_code = 200 if ok else 503
             return {
                 "status": "ready" if ok else "unavailable",

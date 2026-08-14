@@ -31,3 +31,7 @@ Migration `20260814_0003` is additive and supports downgrade to `20260808_0002`.
 exercise upgrade, restricted-role forced RLS, append-only protections, composite foreign keys, and
 the downgrade/upgrade round trip on disposable PostgreSQL. Part 1 has no worker, replay, CSV parser,
 or reconciliation command to operate.
+
+## Signed ingress
+
+Ingress has configured body and replay-window limits. Evidence uses deterministic tenant-prefixed keys, conditional creation, digest metadata, and server-side encryption. A database rollback can leave an identical deterministic object orphan for future Part 3 reconciliation. Delivery remains at-least-once; this part adds no worker.

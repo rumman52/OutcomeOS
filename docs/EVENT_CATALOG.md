@@ -11,3 +11,7 @@ Canonical event envelopes may be persisted by the Milestone 2 foundation with a 
 type and version, occurrence time, JSON payload, and SHA-256 payload digest. Receipt-to-event and
 event-to-original-job links are tenant-composite. No new event producer, consumer, webhook contract,
 or exactly-once guarantee is introduced in Part 1; future delivery remains at-least-once.
+
+## Public input boundary
+
+Public input requires a namespaced type, provider event ID, aware occurrence timestamp, subject, explicit consent, and payload. Tenant, provider, IDs, digests, receive time, and state are server-owned. Missing or false processing consent rejects the request before evidence retention.
