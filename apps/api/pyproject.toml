@@ -5,6 +5,7 @@ description = "OutcomeOS API"
 requires-python = ">=3.12"
 dependencies = [
   "alembic>=1.13,<2",
+  "boto3>=1.40,<2",
   "fastapi>=0.116.1,<0.117",
   "pgvector>=0.4,<0.5",
   "psycopg[binary]>=3.2,<4",
@@ -44,7 +45,7 @@ strict = true
 files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
-module = "pgvector.*"
+module = ["pgvector.*", "boto3.*", "botocore.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

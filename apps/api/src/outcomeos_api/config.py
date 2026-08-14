@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     s3_bucket: str = "outcomeos-evidence"
     s3_access_key_id: str = "outcomeos"
     s3_secret_access_key: str = "outcomeos-local-only"
+    s3_max_object_bytes: int = 10_000_000
+    s3_require_tls: bool = True
+    integration_keyring: str | None = None
+    integration_active_key_id: str | None = None
+    integration_secret_overlap_seconds: int = 300
     ai_provider: str = "deterministic_sandbox"
     ai_model: str = "deterministic-sandbox-v1"
     ai_api_key: str | None = None
@@ -56,6 +61,19 @@ class Settings(BaseSettings):
             and (self.oidc_jwks_url or self.oidc_discovery_url)
         ):
             raise ValueError("OIDC issuer, audience, and JWKS or discovery are required")
+        if self.s3_max_object_bytes < 1 or self.integration_secret_overlap_seconds < 0:
+            raise ValueError("storage limit must be positive and secret overlap cannot be negative")
+        if self.app_env in {"staging", "production"} and (
+            not self.integration_keyring
+            or not self.integration_active_key_id
+            or self.s3_access_key_id == "outcomeos"
+            or self.s3_secret_access_key == "outcomeos-local-only"  # pragma: allowlist secret
+            or (self.s3_require_tls and not self.s3_endpoint_url.startswith("https://"))
+        ):
+            raise ValueError(
+                "managed integration key material, non-default S3 credentials, and TLS storage "
+                "are required in staging and production"
+            )
         return self
 
 

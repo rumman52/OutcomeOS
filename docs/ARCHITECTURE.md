@@ -28,6 +28,18 @@ Sandbox adapters are deterministic and local. Real provider adapters must be add
 head, or reports the explicitly selected local JSON sandbox. `/worker-health` remains degraded
 because the durable worker is a Milestone 2 capability.
 
+## Event-pipeline foundation
+
+Migration `20260814_0003` establishes tenant-scoped integration endpoints and encrypted secret
+versions, immutable receipts and canonical events, outbox/job-attempt records, CSV import metadata,
+replay lineage, reconciliation records, and payload-free worker heartbeats. Composite foreign keys
+prevent cross-tenant relationships; forced RLS and immutable-tenant triggers provide defense in
+depth. No public ingress or worker runtime is mounted in Part 1.
+
+Raw evidence is accessed through a provider-neutral object-storage port. The S3-compatible adapter
+uses deterministic `tenants/{tenant_id}/...` keys, conditional creation, bounded reads/writes,
+SHA-256 metadata verification, and server-side encryption requests.
+
 ## Global modular-monolith direction (2026-08-08)
 
 The accepted boundary decision is recorded in `docs/decisions/0001-global-modular-monolith.md`. New framework-independent code begins under `common`, `events`, and `outcomes`; the existing `mvp.py` remains legacy sandbox code until PostgreSQL repositories replace it incrementally. PostgreSQL—not the JSON store—is the intended non-test source of truth.
