@@ -58,9 +58,15 @@ class EndpointRepository:
         status = "revoked" if revoked else "disabled"
         result = self.session.execute(
             text("""UPDATE integration_endpoints SET status=:status,
-                      revoked_at=CASE WHEN :status='revoked' THEN :now ELSE revoked_at END
+                      revoked_at=CASE WHEN :revoked THEN :now ELSE revoked_at END
                       WHERE tenant_id=:tenant_id AND id=:id AND status='active'"""),
-            {"status": status, "now": now, "tenant_id": self.tenant_id, "id": endpoint_id},
+            {
+                "status": status,
+                "revoked": revoked,
+                "now": now,
+                "tenant_id": self.tenant_id,
+                "id": endpoint_id,
+            },
         )
         return cast(CursorResult[Any], result).rowcount == 1
 
