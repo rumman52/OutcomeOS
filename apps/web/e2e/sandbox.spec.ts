@@ -14,7 +14,7 @@ test("professional shell exposes current journey", async ({ context, page }) => 
     )
     .toBe(true);
   await expect(page.getByText("OutcomeOS")).toBeVisible();
-  await expect(page.getByText("SANDBOX / DEMO")).toBeVisible();
+  await expect(page.getByText("SANDBOX / DEMO", { exact: true })).toBeVisible();
   await expect(page.getByText("আপনার sage green linen set আছে? COD হবে?")).toBeVisible();
   await expect(page.getByLabel("Edit AI reply")).toContainText("COD হবে");
 });
