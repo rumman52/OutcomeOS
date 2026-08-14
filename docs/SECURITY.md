@@ -36,3 +36,11 @@ forced and tenant-owned append-only evidence rejects update and delete operation
 ## Public webhook contract
 
 Clients send exactly one `X-OutcomeOS-Timestamp` Unix-seconds header and one `X-OutcomeOS-Signature: v1=<lowercase-hex-hmac>` header. HMAC-SHA-256 signs `timestamp_header_bytes + b"." + raw_request_body`. Unknown, inactive, malformed, stale, and invalid requests disclose no tenant information. Secrets are AES-256-GCM encrypted and public tokens are stored only as SHA-256 digests.
+# Durable pipeline security notes
+
+The `outcomeos_worker` role has no tenant-table privileges and can execute only the narrowly
+scoped claim, finish, lease-loss, and payload-free heartbeat functions. Those functions use a
+locked `search_path` and are revoked from `PUBLIC`. Persisted failure codes are allow-listed,
+sanitized identifiers rather than exceptions, payloads, request rows, credentials, or stack
+traces. Replay, reconciliation, and CSV operations require explicit API-key scopes and retain
+RLS tenant isolation.

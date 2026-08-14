@@ -35,3 +35,13 @@ or reconciliation command to operate.
 ## Signed ingress
 
 Ingress has configured body and replay-window limits. Evidence uses deterministic tenant-prefixed keys, conditional creation, digest metadata, and server-side encryption. A database rollback can leave an identical deterministic object orphan for future Part 3 reconciliation. Delivery remains at-least-once; this part adds no worker.
+# Durable worker operations
+
+The PostgreSQL worker is run with `python -m outcomeos_api.worker`; `--once` claims one bounded
+batch for operational testing. Claims use database leases and deterministic retry delays. A
+SIGTERM or SIGINT stops new polling and records draining state. `/worker-health` is successful
+only for a fresh healthy heartbeat and otherwise fails closed without revealing worker identity
+or connection details.
+
+Part 2's verified baseline is commit `3e3f744411e68eaeb9d54e5a5569788bd7240121`, workflow
+`31829054612`.
