@@ -86,16 +86,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     .one_or_none()
                 )
             engine.dispose()
-            fresh = (
-                row is not None
-                and row["status"] == "healthy"
-                and row["observed_at"]
-                >= (datetime.now(UTC) - timedelta(seconds=runtime.worker_health_freshness_seconds))
+            fresh = row is not None and row["observed_at"] >= (
+                datetime.now(UTC) - timedelta(seconds=runtime.worker_health_freshness_seconds)
             )
+            state = "missing" if row is None else (str(row["status"]) if fresh else "stale")
+            healthy = fresh and state == "healthy"
             response.status_code = 200 if fresh else 503
+            if not healthy:
+                response.status_code = 503
             return {
-                "status": "healthy" if fresh else "unavailable",
-                "worker": "available" if fresh else "unavailable",
+                "status": "healthy" if healthy else state,
+                "worker": "available" if healthy else "unavailable",
             }
         except SQLAlchemyError:
             response.status_code = 503
@@ -107,6 +108,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         _mount_sandbox(application, runtime)
     elif runtime.integration_keyring and runtime.integration_active_key_id:
         from outcomeos_api.events.operations import operations_router
+        from outcomeos_api.imports.api import csv_import_router
         from outcomeos_api.ingestion.api import public_webhook_router
         from outcomeos_api.integrations.api import management_router
         from outcomeos_api.storage import S3ObjectStorage
@@ -126,6 +128,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         application.include_router(management_router(runtime, write_sessions))
         application.include_router(operations_router(runtime, write_sessions))
+        application.include_router(csv_import_router(runtime, write_sessions, storage))
         application.include_router(
             public_webhook_router(runtime, ingress_sessions, write_sessions, storage)
         )

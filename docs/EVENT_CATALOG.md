@@ -4,7 +4,8 @@ Canonical envelopes are provider-neutral, tenant-scoped and schema-versioned. Ve
 
 Initial namespaced types are `lead.captured`, `lead.qualified`, `order.created`, `order.confirmed`, `fulfillment.delivered`, `order.returned`, `booking.created`, `booking.attended`, `booking.no_show`, `account.activated`, `payment.succeeded`, `payment.refunded`, `outcome.verified`, `outcome.billable`, `dispute.opened`, `dispute.resolved`, and `invoice.paid`.
 
-The schema exists; durable receipt, normalization, outbox processing and replay are not implemented yet.
+Durable receipt, normalization, outbox processing, replay, reconciliation, and CSV ingestion are
+implemented for pre-production verification; no live provider integration is implied.
 # Persistence boundary
 
 Canonical event envelopes may be persisted by the Milestone 2 foundation with a tenant ID, event

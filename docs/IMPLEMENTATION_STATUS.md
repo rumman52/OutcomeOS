@@ -53,16 +53,16 @@ OutcomeOS is **in active transformation** from a Bangladesh-specific determinist
 
 ## Exact next step
 
-Verify the exact Part 2 PR head with zero skipped PostgreSQL and MinIO integration tests. Do not
-begin Part 3 worker execution, replay, reconciliation, or CSV ingestion.
+Verify the Part 3 completion PR with zero skipped PostgreSQL and MinIO integration tests. Do not
+begin Milestone 3.
 
 ## Milestone 2 verification
 
 Part 1 is verified at main SHA `534a0fd37b59a4a290bd579aa405ea169a6ee7d1` by workflow `31812759157`. Part 2 provider-neutral signed ingestion is implemented on a feature branch but is not verified or production-certified until CI is green on its final PR head. It includes no live provider, Part 3 worker, replay, reconciliation, or CSV processing.
 # Milestone 2 Part 3 status
 
-Durable PostgreSQL leases, fenced completion, attempt finalization, bounded storage listing,
-replay/reconciliation scheduling, worker heartbeat health, and strict canonical CSV v1 parsing
+Durable PostgreSQL leases, fenced completion, attempt finalization, bounded reconciliation,
+replay scheduling, worker heartbeat health, and the tenant-authorized CSV upload/status/worker flow
 are implemented on the Part 3 feature branch pending mandatory PostgreSQL/MinIO and pull-request
 CI verification. They are **not production certified**. There are no live providers, contracts,
 attribution, billing, disputes, Milestone 3 evaluation, AI pipeline, or complete UI in this work.
