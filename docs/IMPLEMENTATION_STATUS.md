@@ -26,6 +26,10 @@ OutcomeOS is **in active transformation** from a Bangladesh-specific determinist
 - Milestone 2 Part 1 adds the reversible `20260814_0003` persistence foundation, AES-256-GCM
   integration-secret primitives, and a real S3-compatible adapter. These are infrastructure
   boundaries only; they are not public ingestion, worker execution, or a live integration.
+- Milestone 2 Part 2 adds tenant-authorized endpoint lifecycle APIs, the restricted-role public
+  token resolver, exact-raw-byte HMAC authentication with bounded secret overlap, strict canonical
+  validation and consent, encrypted evidence storage, and atomic idempotent receipt/event/original
+  job persistence. It does not execute that job or add a live provider.
 
 ### Sandbox or partial only
 
@@ -49,8 +53,8 @@ OutcomeOS is **in active transformation** from a Bangladesh-specific determinist
 
 ## Exact next step
 
-Verify the exact Milestone 2 Part 1 PR head with zero skipped PostgreSQL and MinIO integration tests.
-Then stop before public webhook ingestion and worker execution (Part 2).
+Verify the exact Part 2 PR head with zero skipped PostgreSQL and MinIO integration tests. Do not
+begin Part 3 worker execution, replay, reconciliation, or CSV ingestion.
 
 ## Milestone 2 verification
 

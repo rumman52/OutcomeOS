@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     mock_integrations_enabled: bool = False
     persistence_backend: Literal["postgresql", "json_sandbox"] = "postgresql"
     database_url: str = "postgresql+psycopg://outcomeos:outcomeos@localhost:5432/outcomeos"
+    ingress_database_url: str | None = None
     redis_url: str = "redis://localhost:6379/0"
     s3_endpoint_url: str = "http://localhost:9000"
     s3_bucket: str = "outcomeos-evidence"

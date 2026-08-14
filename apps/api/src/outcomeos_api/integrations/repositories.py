@@ -75,3 +75,28 @@ class EndpointRepository:
             .mappings()
             .one_or_none()
         )
+
+    def insert_secret(self, values: dict[str, Any]) -> None:
+        self.session.execute(
+            text("""INSERT INTO integration_secret_versions
+                (id,created_at,tenant_id,endpoint_id,version,key_id,nonce,ciphertext,
+                 not_before,expires_at)
+                VALUES (:id,:created_at,:tenant_id,:endpoint_id,:version,:key_id,:nonce,
+                        :ciphertext,:not_before,:expires_at)"""),
+            values,
+        )
+
+    def shorten_previous_version(
+        self, endpoint_id: UUID, version: int, *, expires_at: datetime
+    ) -> None:
+        self.session.execute(
+            text("""UPDATE integration_secret_versions
+                  SET expires_at=LEAST(expires_at,:expires_at)
+                  WHERE tenant_id=:tenant_id AND endpoint_id=:id AND version=:version"""),
+            {
+                "tenant_id": self.tenant_id,
+                "id": endpoint_id,
+                "version": version,
+                "expires_at": expires_at,
+            },
+        )
