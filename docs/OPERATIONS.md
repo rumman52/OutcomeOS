@@ -19,7 +19,8 @@ make dev-worker
 
 - `GET /health`: process liveness only.
 - `GET /ready`: PostgreSQL connectivity and migration-head readiness. An explicitly selected local/test JSON sandbox reports itself honestly.
-- `GET /worker-health`: degraded until a real worker heartbeat exists.
+- `GET /worker-health`: returns healthy only for a fresh healthy heartbeat; draining, stale,
+  missing, and database-unavailable states fail closed with HTTP 503.
 # Event evidence storage
 
 Configure `S3_ENDPOINT_URL`, bucket and credentials, object byte limits, and TLS policy. Configure
@@ -29,8 +30,8 @@ the application adapter performs deletion only when an authorized future service
 
 Migration `20260814_0003` is additive and supports downgrade to `20260808_0002`. Before promotion,
 exercise upgrade, restricted-role forced RLS, append-only protections, composite foreign keys, and
-the downgrade/upgrade round trip on disposable PostgreSQL. Part 1 has no worker, replay, CSV parser,
-or reconciliation command to operate.
+the downgrade/upgrade round trip on disposable PostgreSQL. Part 3 adds the durable worker, replay,
+CSV import, and reconciliation commands; all remain pre-production until mandatory CI passes.
 
 ## Signed ingress
 

@@ -9,7 +9,14 @@ from sqlalchemy import text
 
 from outcomeos_api.config import Settings, get_settings
 from outcomeos_api.db import create_database_engine, create_session_factory
-from outcomeos_api.jobs.service import JobRunner, canonical_event_handler
+from outcomeos_api.imports import CsvLimits
+from outcomeos_api.jobs.service import (
+    JobRunner,
+    canonical_event_handler,
+    csv_import_handler,
+    reconciliation_handler,
+)
+from outcomeos_api.storage import S3ObjectStorage
 
 
 def build_runner(settings: Settings) -> JobRunner:
@@ -24,6 +31,27 @@ def build_runner(settings: Settings) -> JobRunner:
         backoff_max=settings.worker_backoff_max_seconds,
     )
     runner.register(settings.ingestion_job_kind, canonical_event_handler(sessions))
+    storage = S3ObjectStorage(
+        bucket=settings.s3_bucket,
+        endpoint_url=settings.s3_endpoint_url,
+        access_key_id=settings.s3_access_key_id,
+        secret_access_key=settings.s3_secret_access_key,
+        max_bytes=settings.s3_max_object_bytes,
+    )
+    runner.register(
+        "ingest.csv.v1",
+        csv_import_handler(
+            sessions,
+            storage,
+            CsvLimits(
+                settings.csv_max_bytes,
+                settings.csv_max_rows,
+                settings.csv_max_columns,
+                settings.csv_max_field_length,
+            ),
+        ),
+    )
+    runner.register("reconcile.tenant.v1", reconciliation_handler(sessions, storage))
     return runner
 
 
