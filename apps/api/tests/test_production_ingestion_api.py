@@ -21,7 +21,7 @@ def configured() -> Settings:
         app_env="test",
         integration_keyring=f"current:{key}",
         integration_active_key_id="current",
-        api_key_pepper="fixture-pepper-long-enough",
+        api_key_pepper="fixture-pepper-long-enough",  # pragma: allowlist secret
         webhook_max_body_bytes=1000,
     )
 
