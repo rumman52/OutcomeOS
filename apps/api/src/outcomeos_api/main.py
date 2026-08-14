@@ -3,6 +3,7 @@ from __future__ import annotations
 import hmac
 import json
 import time
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Response
@@ -70,14 +71,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @application.get("/worker-health", tags=["operations"])
     def worker_health(response: Response) -> dict[str, str]:
-        response.status_code = 503
-        return {"status": "degraded", "worker": "durable worker is a Milestone 2 capability"}
+        if runtime.persistence_backend != "postgresql":
+            response.status_code = 503
+            return {"status": "unavailable", "worker": "unavailable"}
+        try:
+            engine = create_database_engine(runtime.database_url)
+            with engine.connect() as connection:
+                row = (
+                    connection.execute(
+                        text("""SELECT observed_at,status FROM worker_heartbeats
+                    ORDER BY observed_at DESC LIMIT 1""")
+                    )
+                    .mappings()
+                    .one_or_none()
+                )
+            engine.dispose()
+            fresh = (
+                row is not None
+                and row["status"] == "healthy"
+                and row["observed_at"]
+                >= (datetime.now(UTC) - timedelta(seconds=runtime.worker_health_freshness_seconds))
+            )
+            response.status_code = 200 if fresh else 503
+            return {
+                "status": "healthy" if fresh else "unavailable",
+                "worker": "available" if fresh else "unavailable",
+            }
+        except SQLAlchemyError:
+            response.status_code = 503
+            return {"status": "unavailable", "worker": "unavailable"}
 
     if runtime.persistence_backend == "json_sandbox":
         if runtime.app_env not in {"development", "test"}:
             raise RuntimeError("JSON sandbox can only be mounted in development or test")
         _mount_sandbox(application, runtime)
     elif runtime.integration_keyring and runtime.integration_active_key_id:
+        from outcomeos_api.events.operations import operations_router
         from outcomeos_api.ingestion.api import public_webhook_router
         from outcomeos_api.integrations.api import management_router
         from outcomeos_api.storage import S3ObjectStorage
@@ -96,6 +125,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             max_bytes=runtime.s3_max_object_bytes,
         )
         application.include_router(management_router(runtime, write_sessions))
+        application.include_router(operations_router(runtime, write_sessions))
         application.include_router(
             public_webhook_router(runtime, ingress_sessions, write_sessions, storage)
         )

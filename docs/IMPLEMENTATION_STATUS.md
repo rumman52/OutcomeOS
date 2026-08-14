@@ -59,3 +59,13 @@ begin Part 3 worker execution, replay, reconciliation, or CSV ingestion.
 ## Milestone 2 verification
 
 Part 1 is verified at main SHA `534a0fd37b59a4a290bd579aa405ea169a6ee7d1` by workflow `31812759157`. Part 2 provider-neutral signed ingestion is implemented on a feature branch but is not verified or production-certified until CI is green on its final PR head. It includes no live provider, Part 3 worker, replay, reconciliation, or CSV processing.
+# Milestone 2 Part 3 status
+
+Durable PostgreSQL leases, fenced completion, attempt finalization, bounded storage listing,
+replay/reconciliation scheduling, worker heartbeat health, and strict canonical CSV v1 parsing
+are implemented on the Part 3 feature branch pending mandatory PostgreSQL/MinIO and pull-request
+CI verification. They are **not production certified**. There are no live providers, contracts,
+attribution, billing, disputes, Milestone 3 evaluation, AI pipeline, or complete UI in this work.
+
+Verified Part 2 baseline: `3e3f744411e68eaeb9d54e5a5569788bd7240121`; successful main
+workflow: `31829054612`.

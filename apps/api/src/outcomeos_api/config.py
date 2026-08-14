@@ -32,6 +32,17 @@ class Settings(BaseSettings):
     webhook_max_body_bytes: int = 1_000_000
     webhook_replay_window_seconds: int = 300
     ingestion_job_kind: str = "ingest.canonical_event.v1"
+    worker_lease_seconds: int = 60
+    worker_poll_seconds: float = 1.0
+    worker_batch_size: int = 10
+    worker_max_attempts: int = 5
+    worker_backoff_base_seconds: int = 5
+    worker_backoff_max_seconds: int = 300
+    worker_health_freshness_seconds: int = 90
+    csv_max_bytes: int = 1_000_000
+    csv_max_rows: int = 10_000
+    csv_max_columns: int = 20
+    csv_max_field_length: int = 4_000
     ai_provider: str = "deterministic_sandbox"
     ai_model: str = "deterministic-sandbox-v1"
     ai_api_key: str | None = None
@@ -77,6 +88,21 @@ class Settings(BaseSettings):
             or self.integration_secret_overlap_seconds >= self.integration_secret_lifetime_seconds
             or self.integration_endpoint_token_bytes < 32
             or not self.ingestion_job_kind
+            or min(
+                self.worker_lease_seconds,
+                self.worker_batch_size,
+                self.worker_max_attempts,
+                self.worker_backoff_base_seconds,
+                self.worker_backoff_max_seconds,
+                self.worker_health_freshness_seconds,
+                self.csv_max_bytes,
+                self.csv_max_rows,
+                self.csv_max_columns,
+                self.csv_max_field_length,
+            )
+            < 1
+            or self.worker_poll_seconds <= 0
+            or self.worker_backoff_base_seconds > self.worker_backoff_max_seconds
         ):
             raise ValueError("storage limit must be positive and secret overlap cannot be negative")
         if self.app_env in {"staging", "production"} and (

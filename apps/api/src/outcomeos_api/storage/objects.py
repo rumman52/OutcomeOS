@@ -16,11 +16,25 @@ class ObjectHead:
     sha256: str
 
 
+@dataclass(frozen=True)
+class ObjectPage:
+    keys: tuple[str, ...]
+    cursor: str | None
+
+
 class ObjectStorage(Protocol):
     def put_if_absent(self, tenant_id: UUID, key: str, body: bytes, sha256: str) -> ObjectHead: ...
     def read(self, tenant_id: UUID, key: str) -> bytes: ...
     def head(self, tenant_id: UUID, key: str) -> ObjectHead: ...
     def delete(self, tenant_id: UUID, key: str) -> None: ...
+
+
+class PaginatedObjectStorage(ObjectStorage, Protocol):
+    """Object-storage port used by tenant-bounded reconciliation scans."""
+
+    def list_page(
+        self, tenant_id: UUID, *, cursor: str | None = None, limit: int = 100
+    ) -> ObjectPage: ...
 
 
 def _object_key(tenant_id: UUID, key: str) -> str:
@@ -101,3 +115,25 @@ class S3ObjectStorage:
 
     def delete(self, tenant_id: UUID, key: str) -> None:
         self._client.delete_object(Bucket=self._bucket, Key=_object_key(tenant_id, key))
+
+    def list_page(
+        self, tenant_id: UUID, *, cursor: str | None = None, limit: int = 100
+    ) -> ObjectPage:
+        if limit < 1 or limit > 1000:
+            raise ValueError("object listing limit must be between 1 and 1000")
+        prefix = f"tenants/{tenant_id}/"
+        request: dict[str, object] = {
+            "Bucket": self._bucket,
+            "Prefix": prefix,
+            "MaxKeys": limit,
+        }
+        if cursor:
+            request["ContinuationToken"] = cursor
+        response = self._client.list_objects_v2(**request)
+        keys = tuple(
+            str(item["Key"])[len(prefix) :]
+            for item in response.get("Contents", [])
+            if str(item.get("Key", "")).startswith(prefix)
+        )
+        next_cursor = response.get("NextContinuationToken")
+        return ObjectPage(keys, str(next_cursor) if next_cursor else None)

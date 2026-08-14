@@ -47,3 +47,10 @@ The accepted boundary decision is recorded in `docs/decisions/0001-global-modula
 ## Secure public ingress
 
 Public ingress resolves an opaque token through a security-definer PostgreSQL function returning only tenant and endpoint IDs. Authentication covers exact raw bytes before strict canonical parsing. Encrypted evidence storage precedes one atomic receipt, canonical-event, and pending-outbox transaction; outbox processing remains outside Part 2.
+# Durable pipeline boundary (Milestone 2 Part 3)
+
+PostgreSQL is the only queue. Least-privilege security-definer operations claim rows with
+`FOR UPDATE SKIP LOCKED`, create a uniquely tokened bounded lease and attempt atomically, and
+fence completion by that token. API operations persist their control event and outbox job in
+the same tenant-scoped transaction. S3-compatible evidence remains tenant-prefixed and encrypted
+at rest; reconciliation listing is bounded and paginated.
