@@ -48,6 +48,7 @@ jobs:
       INTEGRATION_S3_ACCESS_KEY_ID: outcomeos_ci
       INTEGRATION_S3_SECRET_ACCESS_KEY: outcomeos-ci-only-secret # pragma: allowlist secret
       INTEGRATION_S3_BUCKET: outcomeos-ci
+      MINIO_KMS_SECRET_KEY: "outcomeos-ci-kms:b3V0Y29tZW9zLWNpLWttcy1rZXktMzItYnl0ZXMtMDE=" # pragma: allowlist secret
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -68,6 +69,7 @@ jobs:
             --publish 127.0.0.1:9000:9000 \
             --env MINIO_ROOT_USER="$INTEGRATION_S3_ACCESS_KEY_ID" \
             --env MINIO_ROOT_PASSWORD="$INTEGRATION_S3_SECRET_ACCESS_KEY" \
+            --env MINIO_KMS_SECRET_KEY="$MINIO_KMS_SECRET_KEY" \
             minio/minio:RELEASE.2025-04-22T22-12-26Z \
             server /data
 
