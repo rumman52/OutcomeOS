@@ -42,13 +42,6 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U outcomeos -d outcomeos_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
-      minio:
-        image: bitnami/minio:latest
-        env:
-          MINIO_ROOT_USER: outcomeos_ci
-          MINIO_ROOT_PASSWORD: outcomeos-ci-only-secret # pragma: allowlist secret
-          MINIO_DEFAULT_BUCKETS: outcomeos-ci
-        ports: ["127.0.0.1:9000:9000"]
     env:
       INTEGRATION_DATABASE_URL: postgresql+psycopg://outcomeos:outcomeos@localhost:5432/outcomeos_test
       INTEGRATION_S3_ENDPOINT_URL: http://127.0.0.1:9000
@@ -66,6 +59,33 @@ jobs:
       - run: uv run --project apps/api ruff format --check apps/api scripts/check_secret_scan.py scripts/validate_migrations.py
       - run: uv run --project apps/api mypy --config-file apps/api/pyproject.toml apps/api/src apps/api/tests
       - run: make test-api
+      - name: Start pinned MinIO
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --rm \
+            --name outcomeos-minio \
+            --publish 127.0.0.1:9000:9000 \
+            --env MINIO_ROOT_USER="$INTEGRATION_S3_ACCESS_KEY_ID" \
+            --env MINIO_ROOT_PASSWORD="$INTEGRATION_S3_SECRET_ACCESS_KEY" \
+            minio/minio:RELEASE.2025-04-22T22-12-26Z \
+            server /data
+
+          ready=false
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error \
+              http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" != "true" ]; then
+            docker logs outcomeos-minio
+            exit 1
+          fi
+
       - run: make test-integration
       - name: Assert mandatory integration tests have zero skips
         run: uv run --project apps/api pytest apps/api/tests/integration -m integration --junitxml=/tmp/integration.xml && ! grep -q 'skipped="[1-9]' /tmp/integration.xml
@@ -80,3 +100,7 @@ jobs:
             xargs -0 uv run --project apps/api detect-secrets scan --baseline /tmp/secrets.json --exclude-files '^\.secrets\.baseline$'
           uv run --project apps/api python scripts/check_secret_scan.py .secrets.baseline /tmp/secrets.json
       - run: git diff --check
+      - name: Stop MinIO
+        if: always()
+        shell: bash
+        run: docker rm --force outcomeos-minio 2>/dev/null || true
