@@ -20,6 +20,12 @@ OutcomeOS is **in active transformation** from a Bangladesh-specific determinist
   identities, invitations, API keys, external grants, append-only audit events, immutable tenant
   triggers, expanded RLS, and composite tenant-aware foreign keys without modifying the applied
   `20260804_0001` revision.
+- Milestone 1 is verified at main SHA `76508c6c2210e7c7854be9ac3875ec465648e281` by successful
+  push CI run `31781784962`, including PostgreSQL 17/pgvector migrations, restricted-role RLS,
+  API and web quality gates, builds, Chromium E2E, coverage, and secret scanning.
+- Milestone 2 Part 1 adds the reversible `20260814_0003` persistence foundation, AES-256-GCM
+  integration-secret primitives, and a real S3-compatible adapter. These are infrastructure
+  boundaries only; they are not public ingestion, worker execution, or a live integration.
 
 ### Sandbox or partial only
 
@@ -38,12 +44,10 @@ OutcomeOS is **in active transformation** from a Bangladesh-specific determinist
 - Live OIDC verification, durable outbox worker, production evidence storage, contracts,
   attribution, billing ledger, disputes, privacy workflows and complete operational UI.
 - Shopify, Stripe, Meta, Google, TikTok, HubSpot, Calendly, WhatsApp, fulfilment providers and hosted LLMs. Adapter interfaces or documentation must never be read as connectivity.
-- CI proof for the Milestone 1 PostgreSQL 17/pgvector boundary remains pending. The checked-in,
-  uv-generated `apps/api/uv.lock` passes both `uv lock --check` and frozen synchronization; the
-  pnpm lockfile also passes frozen installation.
+- Milestone 2 PostgreSQL and MinIO integration tests require the draft PR's disposable CI services;
+  Docker is unavailable in the local development environment used for this change.
 
 ## Exact next step
 
-Run the Milestone 1 integration suite in CI with its disposable PostgreSQL 17/pgvector service,
-review the required zero-skip evidence, and fix any evidence-based failure before beginning
-Milestone 2.
+Verify the exact Milestone 2 Part 1 PR head with zero skipped PostgreSQL and MinIO integration tests.
+Then stop before public webhook ingestion and worker execution (Part 2).

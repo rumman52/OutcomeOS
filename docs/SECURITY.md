@@ -22,3 +22,13 @@ identity-to-membership resolution, explicit role permissions, hashed scoped API 
 immutable tenant identifiers, and composite tenant foreign keys. No live identity provider is
 claimed. The PostgreSQL enforcement suite must pass under its restricted `NOBYPASSRLS` role before
 these controls can be described as operationally verified.
+# Milestone 2 foundation
+
+Integration secrets are encrypted with AES-256-GCM. Tenant ID, endpoint ID, format version, and
+secret version form authenticated additional data, so ciphertext cannot be moved between tenants,
+endpoints, or versions. Rotation retains explicit validity windows and key IDs; applications must
+obtain keyring values from a production secret manager and must never log plaintext or ciphertext.
+
+Staging and production startup fails closed when integration key identifiers are absent, local S3
+credentials are retained, or TLS-required object storage uses a plaintext endpoint. Database RLS is
+forced and tenant-owned append-only evidence rejects update and delete operations.

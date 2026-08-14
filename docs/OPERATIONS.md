@@ -20,3 +20,14 @@ make dev-worker
 - `GET /health`: process liveness only.
 - `GET /ready`: PostgreSQL connectivity and migration-head readiness. An explicitly selected local/test JSON sandbox reports itself honestly.
 - `GET /worker-health`: degraded until a real worker heartbeat exists.
+# Event evidence storage
+
+Configure `S3_ENDPOINT_URL`, bucket and credentials, object byte limits, and TLS policy. Configure
+`INTEGRATION_KEYRING` and `INTEGRATION_ACTIVE_KEY_ID` from a secret manager and retain old keys only
+for the bounded rotation interval. Object retention is an operator-owned bucket lifecycle policy;
+the application adapter performs deletion only when an authorized future service requests it.
+
+Migration `20260814_0003` is additive and supports downgrade to `20260808_0002`. Before promotion,
+exercise upgrade, restricted-role forced RLS, append-only protections, composite foreign keys, and
+the downgrade/upgrade round trip on disposable PostgreSQL. Part 1 has no worker, replay, CSV parser,
+or reconciliation command to operate.

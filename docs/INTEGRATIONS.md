@@ -9,6 +9,13 @@ All provider-facing capabilities are deterministic sandbox/mock behavior. Real M
 - Meta-like campaign/ad/spend fixture.
 - WhatsApp/Messenger-like inbound message fixture.
 - Signed sandbox delivery and COD webhook endpoints.
+
+## Event foundation (not a live connection)
+
+Provider-neutral endpoint and encrypted-secret persistence is available for future adapters. Part 1
+does not add a public webhook route, provider SDK integration, signature-verification workflow, or
+background execution. S3 compatibility is verified against disposable MinIO in CI; this does not
+represent production storage certification or a live provider connection.
 - Deterministic OTP/intent/risk verification checks.
 - Deterministic AI provider output grounded in tenant knowledge.
 

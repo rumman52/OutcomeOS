@@ -42,8 +42,19 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U outcomeos -d outcomeos_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
+      minio:
+        image: bitnami/minio:latest
+        env:
+          MINIO_ROOT_USER: outcomeos_ci
+          MINIO_ROOT_PASSWORD: outcomeos-ci-only-secret # pragma: allowlist secret
+          MINIO_DEFAULT_BUCKETS: outcomeos-ci
+        ports: ["127.0.0.1:9000:9000"]
     env:
       INTEGRATION_DATABASE_URL: postgresql+psycopg://outcomeos:outcomeos@localhost:5432/outcomeos_test
+      INTEGRATION_S3_ENDPOINT_URL: http://127.0.0.1:9000
+      INTEGRATION_S3_ACCESS_KEY_ID: outcomeos_ci
+      INTEGRATION_S3_SECRET_ACCESS_KEY: outcomeos-ci-only-secret # pragma: allowlist secret
+      INTEGRATION_S3_BUCKET: outcomeos-ci
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -56,6 +67,8 @@ jobs:
       - run: uv run --project apps/api mypy --config-file apps/api/pyproject.toml apps/api/src apps/api/tests
       - run: make test-api
       - run: make test-integration
+      - name: Assert mandatory integration tests have zero skips
+        run: uv run --project apps/api pytest apps/api/tests/integration -m integration --junitxml=/tmp/integration.xml && ! grep -q 'skipped="[1-9]' /tmp/integration.xml
       - run: uv run --project apps/api python scripts/validate_migrations.py
       - run: uv build --project apps/api
       - name: Secret scanning
