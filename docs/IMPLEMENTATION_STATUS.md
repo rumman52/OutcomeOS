@@ -51,3 +51,7 @@ OutcomeOS is **in active transformation** from a Bangladesh-specific determinist
 
 Verify the exact Milestone 2 Part 1 PR head with zero skipped PostgreSQL and MinIO integration tests.
 Then stop before public webhook ingestion and worker execution (Part 2).
+
+## Milestone 2 verification
+
+Part 1 is verified at main SHA `534a0fd37b59a4a290bd579aa405ea169a6ee7d1` by workflow `31812759157`. Part 2 provider-neutral signed ingestion is implemented on a feature branch but is not verified or production-certified until CI is green on its final PR head. It includes no live provider, Part 3 worker, replay, reconciliation, or CSV processing.

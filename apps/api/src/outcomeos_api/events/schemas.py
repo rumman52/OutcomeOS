@@ -22,10 +22,40 @@ class EventMoney(BaseModel):
 
 
 class ConsentFlags(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
     processing_permitted: bool
     advertising_permitted: bool = False
     purpose: str = Field(min_length=1, max_length=200)
+
+
+class PublicEventInput(BaseModel):
+    """Strict provider payload parsed only after raw-byte authentication."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    provider_event_id: str = Field(min_length=1, max_length=255, pattern=r"^[A-Za-z0-9._:-]+$")
+    event_type: str = Field(pattern=r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
+    occurred_at: datetime
+    subject_type: str = Field(min_length=1, max_length=80, pattern=r"^[a-z][a-z0-9_]*$")
+    subject_id: str = Field(min_length=1, max_length=255, pattern=r"^[A-Za-z0-9._:-]+$")
+    consent: ConsentFlags
+    references: dict[str, str] = Field(default_factory=dict)
+    attribution: dict[str, str] = Field(default_factory=dict)
+    money: EventMoney | None = None
+    payload: dict[str, Any]
+
+    @field_validator("occurred_at")
+    @classmethod
+    def require_aware_occurrence(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("occurred_at must include a UTC offset")
+        return value
+
+    @field_validator("consent")
+    @classmethod
+    def require_processing_consent(cls, value: ConsentFlags) -> ConsentFlags:
+        if not value.processing_permitted:
+            raise ValueError("processing consent is required")
+        return value
 
 
 class CanonicalEvent(BaseModel):

@@ -20,3 +20,7 @@ represent production storage certification or a live provider connection.
 - Deterministic AI provider output grounded in tenant knowledge.
 
 Production startup rejects demo/mock flags, deterministic AI defaults, and default webhook secrets. Future real adapters must add encrypted tenant credentials, least-privilege scopes, webhook signature/replay validation, idempotency, retry/backoff, deletion, audit, freshness/error UI, contract tests, and retained provider evidence.
+
+## Provider-neutral endpoint lifecycle
+
+Creation and rotation disclose a new signing secret once; list and detail never expose secrets, ciphertext, nonces, or key IDs. Rotation permits only a configured bounded overlap. Part 2 connects no live provider.

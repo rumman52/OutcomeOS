@@ -22,6 +22,7 @@ class Permission(StrEnum):
     FINANCE_READ = "finance:read"
     FINANCE_WRITE = "finance:write"
     DISPUTE_REVIEW = "dispute:review"
+    INTEGRATION_MANAGE = "integration:manage"
 
 
 _POLICY: dict[Role, frozenset[Permission]] = {
