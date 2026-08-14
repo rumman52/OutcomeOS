@@ -82,7 +82,7 @@ def test_s3_adapter_checks_limits_digests_duplicates_and_reads() -> None:
         bucket="test",
         endpoint_url="http://unused",
         access_key_id="test",
-        secret_access_key="test",
+        secret_access_key="test",  # pragma: allowlist secret
         max_bytes=20,
         client=cast(BaseClient, fake),
     )
