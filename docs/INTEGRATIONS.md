@@ -12,14 +12,19 @@ All provider-facing capabilities are deterministic sandbox/mock behavior. Real M
 
 ## Event foundation (not a live connection)
 
-Provider-neutral endpoint and encrypted-secret persistence is available for future adapters. Part 1
-does not add a public webhook route, provider SDK integration, signature-verification workflow, or
-background execution. S3 compatibility is verified against disposable MinIO in CI; this does not
-represent production storage certification or a live provider connection.
+Provider-neutral endpoint management and `POST /api/v1/webhooks/{public_token}` are implemented on
+the PostgreSQL path. The public route resolves endpoint material through the restricted ingress
+function, authenticates exact request bytes before strict JSON validation, stores server-side
+encrypted raw evidence, and atomically creates a receipt, canonical event, and pending durable job.
+Identical retries reuse the existing result and conflicting payloads are rejected. This is an
+ingestion boundary, not a provider SDK integration or background execution. S3 compatibility is
+tested against disposable MinIO; this does not represent a live provider connection.
 - Deterministic OTP/intent/risk verification checks.
 - Deterministic AI provider output grounded in tenant knowledge.
 
-Production startup rejects demo/mock flags, deterministic AI defaults, and default webhook secrets. Future real adapters must add encrypted tenant credentials, least-privilege scopes, webhook signature/replay validation, idempotency, retry/backoff, deletion, audit, freshness/error UI, contract tests, and retained provider evidence.
+Production startup rejects demo/mock flags, deterministic AI defaults, and default webhook secrets.
+Future real adapters must still add provider-specific contracts, retry/backoff, deletion, audit,
+freshness/error UI, and provider certification.
 
 ## Provider-neutral endpoint lifecycle
 

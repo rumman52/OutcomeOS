@@ -11,7 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from outcomeos_api.config import Settings, get_settings
-from outcomeos_api.db import create_database_engine
+from outcomeos_api.db import create_database_engine, create_session_factory
 from outcomeos_api.migrations import EXPECTED_MIGRATION_HEAD
 
 
@@ -23,7 +23,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_origins=[runtime.frontend_origin],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "If-Match"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Idempotency-Key",
+            "If-Match",
+            "X-OutcomeOS-Timestamp",
+            "X-OutcomeOS-Signature",
+        ],
     )
 
     @application.get("/health", tags=["operations"])
@@ -70,6 +77,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if runtime.app_env not in {"development", "test"}:
             raise RuntimeError("JSON sandbox can only be mounted in development or test")
         _mount_sandbox(application, runtime)
+    elif runtime.integration_keyring and runtime.integration_active_key_id:
+        from outcomeos_api.ingestion.api import public_webhook_router
+        from outcomeos_api.integrations.api import management_router
+        from outcomeos_api.storage import S3ObjectStorage
+
+        write_engine = create_database_engine(runtime.database_url)
+        ingress_engine = create_database_engine(
+            runtime.ingress_database_url or runtime.database_url
+        )
+        write_sessions = create_session_factory(write_engine)
+        ingress_sessions = create_session_factory(ingress_engine)
+        storage = S3ObjectStorage(
+            bucket=runtime.s3_bucket,
+            endpoint_url=runtime.s3_endpoint_url,
+            access_key_id=runtime.s3_access_key_id,
+            secret_access_key=runtime.s3_secret_access_key,
+            max_bytes=runtime.s3_max_object_bytes,
+        )
+        application.include_router(management_router(runtime, write_sessions))
+        application.include_router(
+            public_webhook_router(runtime, ingress_sessions, write_sessions, storage)
+        )
     return application
 
 
