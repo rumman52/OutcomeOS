@@ -53,8 +53,9 @@ OutcomeOS is **in active transformation** from a Bangladesh-specific determinist
 
 ## Exact next step
 
-Verify the Part 3 completion PR with zero skipped PostgreSQL and MinIO integration tests. Do not
-begin Milestone 3.
+Milestone 3 Part 1's framework-independent contract/rule model and additive persistence schema are
+implemented locally. Complete and verify its authenticated management adapters and real PostgreSQL
+integration matrix before treating Part 1 as complete. Parts 2 and 3 have not started.
 
 ## Milestone 2 verification
 
@@ -69,3 +70,13 @@ attribution, billing, disputes, Milestone 3 evaluation, AI pipeline, or complete
 
 Verified Part 2 baseline: `3e3f744411e68eaeb9d54e5a5569788bd7240121`; successful main
 workflow: `31829054612`.
+
+## Milestone 3 Part 1 status
+
+Canonical digest-bound terms, exact fixed-fee/basis-point metadata, rule and contract lifecycle
+primitives, exact-digest party acknowledgements, deterministic effective selection, and migration
+`20260815_0008` are implemented. The migration adds tenant-composite references, checks, indexes,
+forced RLS, and database immutability triggers. This foundation is not production-certified until
+the remaining management API and mandatory PostgreSQL concurrency/RLS suite are complete and CI is
+green. Rule execution, outcome evaluation, attribution, billing, disputes, providers, and AI are
+not implemented by this part.
