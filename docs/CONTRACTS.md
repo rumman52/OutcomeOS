@@ -30,3 +30,26 @@ active unsuspended version, `no_effective_contract`, or fails closed with
 Revision `20260815_0008` descends from `20260815_0007`. It adds composite tenant foreign keys,
 checks, selection/list indexes, forced RLS policies, and triggers protecting proposed, published,
 accepted, and active history. Its downgrade removes only Part 1 objects.
+
+## Management API and transaction behavior
+
+Authenticated management is exposed below `/api/v1/contracts` and `/api/v1/outcome-rules`.
+Stable aggregates, exact numbered versions, source bindings, and lifecycle commands are tenant
+scoped in SQL; list operations use an ID cursor, deterministic ordering, and a bounded 1–100
+limit. Request models forbid extra fields, so callers cannot inject a tenant, actor, digest, or
+authorization decision. Human access tokens are signature/issuer/audience verified through OIDC
+and resolved through persisted identity and membership records. API keys require `data:write`, but
+are deliberately rejected by the acceptance command. Acceptance additionally requires a persisted
+`contract_party_authorities` row for that exact contract, role, and principal.
+
+Every command requires `Idempotency-Key`. Revision `20260815_0009`, which additively descends from
+immutable revision `20260815_0008`, stores a tenant-scoped request digest and original response;
+reusing a key with different input fails with `idempotency_conflict`. The domain write, bounded
+append-only audit record, sanitized domain-outbox record, and idempotency result share one database
+transaction. Exceptions roll back all four. The outbox does not contain terms, provider payloads,
+credentials, or PII.
+
+Contract rows are locked for activation and lifecycle changes. `lock_version` supports optimistic
+concurrency and the existing partial unique index permits only one active version. Activation
+supersedes the prior version while holding the aggregate lock. A PostgreSQL exclusion constraint
+rejects overlapping half-open source-binding intervals for the same tenant and canonical source.

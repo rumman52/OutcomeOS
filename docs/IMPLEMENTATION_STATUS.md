@@ -73,10 +73,11 @@ workflow: `31829054612`.
 
 ## Milestone 3 Part 1 status
 
-Canonical digest-bound terms, exact fixed-fee/basis-point metadata, rule and contract lifecycle
-primitives, exact-digest party acknowledgements, deterministic effective selection, and migration
-`20260815_0008` are implemented. The migration adds tenant-composite references, checks, indexes,
-forced RLS, and database immutability triggers. This foundation is not production-certified until
-the remaining management API and mandatory PostgreSQL concurrency/RLS suite are complete and CI is
-green. Rule execution, outcome evaluation, attribution, billing, disputes, providers, and AI are
-not implemented by this part.
+Canonical digest-bound terms, exact fixed-fee/basis-point metadata, lifecycle services,
+exact-digest authorized human acknowledgements, deterministic effective selection, and the
+authenticated management/read API are implemented. Additive revision `20260815_0009` descends
+from immutable `20260815_0008` and adds tenant-scoped command idempotency, a sanitized domain
+outbox, persisted party authority, and overlapping-binding prevention. Milestone 3 Part 1 remains
+incomplete until the mandatory service/API and real PostgreSQL matrix is added, the unchanged 90%
+coverage gate passes, and protected `api` and `web` jobs are green. Parts 2–3, rule execution,
+outcome evaluation, attribution, billing, disputes, live providers, and AI have not started.
