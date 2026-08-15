@@ -41,6 +41,10 @@ authorization decision. Human access tokens are signature/issuer/audience verifi
 and resolved through persisted identity and membership records. API keys require `data:write`, but
 are deliberately rejected by the acceptance command. Acceptance additionally requires a persisted
 `contract_party_authorities` row for that exact contract, role, and principal.
+Tenant owners and administrators provision that authority through
+`POST /api/v1/contracts/{contract_id}/party-authorities`; API keys are denied for both authority
+provisioning and acceptance. Audit and outbox records preserve whether the initiating actor was a
+verified human or API key.
 
 Every command requires `Idempotency-Key`. Revision `20260815_0009`, which additively descends from
 immutable revision `20260815_0008`, stores a tenant-scoped request digest and original response;
@@ -53,3 +57,5 @@ Contract rows are locked for activation and lifecycle changes. `lock_version` su
 concurrency and the existing partial unique index permits only one active version. Activation
 supersedes the prior version while holding the aggregate lock. A PostgreSQL exclusion constraint
 rejects overlapping half-open source-binding intervals for the same tenant and canonical source.
+Source-binding creation uses the same request-digest idempotency transaction as every other
+command, returning the original identifier and response for an identical retry.

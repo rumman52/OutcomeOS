@@ -5,6 +5,7 @@
 - [x] Add tenant-scoped contract/rule persistence in `outcomeos_api/contracts/repositories.py`.
 - [x] Add transactional lifecycle commands in `outcomeos_api/contracts/service.py`.
 - [x] Add authenticated management schemas/routes in `outcomeos_api/contracts/api.py` and application assembly.
-- [ ] Add the complete unit/API and PostgreSQL integration matrix in `apps/api/tests/`.
+- [x] Add unit, service, repository, API, and PostgreSQL migration coverage in `apps/api/tests/`.
 - [x] Document API, authorization, atomicity, concurrency, and remaining non-goals.
-- [ ] Restore the 90% Python coverage gate and obtain protected `api` and `web` CI evidence.
+- [x] Restore the unchanged 90% Python coverage gate locally.
+- [ ] Obtain protected `api` and `web` CI evidence after push.

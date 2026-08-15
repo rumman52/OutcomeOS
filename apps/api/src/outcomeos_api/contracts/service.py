@@ -10,9 +10,18 @@ from uuid import UUID, uuid4
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from outcomeos_api.contracts.domain import canonical_document, document_digest
+from outcomeos_api.contracts.domain import (
+    BasisPoints,
+    FixedFee,
+    RuleVersion,
+    canonical_document,
+    document_digest,
+    validate_currency,
+    validate_timezone,
+)
 from outcomeos_api.contracts.repositories import ContractRepository
 from outcomeos_api.db import AuthenticatedPrincipal
+from outcomeos_api.domain import DomainError
 
 
 class ContractCommandError(ValueError):
@@ -24,10 +33,16 @@ class ContractCommandError(ValueError):
 class ContractService:
     """Transactional application service; HTTP and lifecycle concerns remain separate."""
 
-    def __init__(self, session: Session, principal: AuthenticatedPrincipal) -> None:
+    def __init__(
+        self, session: Session, principal: AuthenticatedPrincipal, *, actor_type: str = "human"
+    ) -> None:
         self.session = session
         self.principal = principal
         self.repo = ContractRepository(session, principal.tenant_id)
+        self.actor_type = actor_type
+
+    def _record(self, **values: Any) -> None:
+        self.repo.record(actor_type=self.actor_type, **values)
 
     def _run(self, key: str, request: dict[str, Any], operation: Any) -> dict[str, Any]:
         digest = hashlib.sha256(
@@ -57,7 +72,7 @@ class ContractService:
                 },
             )
             result = {"id": str(identifier), "state": "draft", "lock_version": 0}
-            self.repo.record(
+            self._record(
                 event_type="contract_created",
                 aggregate_type="performance_contract",
                 aggregate_id=identifier,
@@ -83,7 +98,7 @@ class ContractService:
                 },
             )
             result = {"id": str(identifier), "name": name}
-            self.repo.record(
+            self._record(
                 event_type="outcome_rule_created",
                 aggregate_type="outcome_rule",
                 aggregate_id=identifier,
@@ -95,6 +110,11 @@ class ContractService:
         return self._run(key, {"command": "create_rule", "name": name}, operation)
 
     def create_rule_version(self, key: str, rule_id: UUID, body: dict[str, Any]) -> dict[str, Any]:
+        try:
+            RuleVersion("validation", 1, body["template_id"], body["definition"])
+        except DomainError as error:
+            raise ContractCommandError("invalid_rule_definition") from error
+
         def operation() -> dict[str, Any]:
             if self.repo.one("outcome_rules", rule_id) is None:
                 raise ContractCommandError("resource_not_found")
@@ -126,7 +146,7 @@ class ContractService:
                 "state": "draft",
                 "digest": None,
             }
-            self.repo.record(
+            self._record(
                 event_type="rule_version_created",
                 aggregate_type="outcome_rule",
                 aggregate_id=rule_id,
@@ -151,6 +171,16 @@ class ContractService:
             )
             if row["state"] != expected:
                 raise ContractCommandError("invalid_lifecycle")
+            if action == "publish":
+                try:
+                    RuleVersion(
+                        str(version_id),
+                        int(row["version"]),
+                        str(row["template_id"]),
+                        row["definition"],
+                    )
+                except DomainError as error:
+                    raise ContractCommandError("invalid_rule_definition") from error
             digest = document_digest(row["definition"])
             self.session.execute(
                 text("""UPDATE outcome_rule_versions SET state=:target,
@@ -175,7 +205,7 @@ class ContractService:
                 "state": target,
                 "digest": digest,
             }
-            self.repo.record(
+            self._record(
                 event_type=f"rule_version_{action}ed",
                 aggregate_type="outcome_rule",
                 aggregate_id=rule_id,
@@ -197,6 +227,22 @@ class ContractService:
     def create_contract_version(
         self, key: str, contract_id: UUID, body: dict[str, Any]
     ) -> dict[str, Any]:
+        try:
+            body = dict(body)
+            body["currency"] = validate_currency(body["currency"])
+            body["contract_timezone"] = validate_timezone(body["contract_timezone"])
+            if body["pricing_model"] == "fixed_fee":
+                FixedFee(body["fixed_fee_minor"], body["currency"])
+            else:
+                BasisPoints(
+                    body["rate_basis_points"],
+                    body["currency"],
+                    body.get("floor_minor"),
+                    body.get("cap_minor"),
+                )
+        except (DomainError, KeyError) as error:
+            raise ContractCommandError("invalid_contract_terms") from error
+
         def operation() -> dict[str, Any]:
             if self.repo.lock_contract(contract_id) is None:
                 raise ContractCommandError("resource_not_found")
@@ -236,7 +282,7 @@ class ContractService:
                 "state": "draft",
                 "digest": None,
             }
-            self.repo.record(
+            self._record(
                 event_type="contract_version_created",
                 aggregate_type="performance_contract",
                 aggregate_id=contract_id,
@@ -356,7 +402,7 @@ class ContractService:
                 "state": target,
                 "digest": actual_digest,
             }
-            self.repo.record(
+            self._record(
                 event_type=f"contract_version_{action}ed",
                 aggregate_type="performance_contract",
                 aggregate_id=contract_id,
@@ -410,7 +456,7 @@ class ContractService:
                 "state": target,
                 "lock_version": row["lock_version"] + 1,
             }
-            self.repo.record(
+            self._record(
                 event_type=f"contract_{action}ed",
                 aggregate_type="performance_contract",
                 aggregate_id=contract_id,
@@ -427,4 +473,83 @@ class ContractService:
             key,
             {"command": action, "contract": str(contract_id), "lock_version": lock_version},
             operation,
+        )
+
+    def provision_authority(
+        self, key: str, contract_id: UUID, party_role: str, principal_id: UUID
+    ) -> dict[str, Any]:
+        def operation() -> dict[str, Any]:
+            if self.repo.lock_contract(contract_id) is None:
+                raise ContractCommandError("resource_not_found")
+            identifier = uuid4()
+            self.session.execute(
+                text("""INSERT INTO contract_party_authorities
+                (id,tenant_id,contract_id,party_role,principal_id)
+                VALUES(:id,:tenant,:contract,:role,:principal)"""),
+                {
+                    "id": identifier,
+                    "tenant": self.principal.tenant_id,
+                    "contract": contract_id,
+                    "role": party_role,
+                    "principal": principal_id,
+                },
+            )
+            result = {
+                "id": str(identifier),
+                "contract_id": str(contract_id),
+                "party_role": party_role,
+                "principal_id": str(principal_id),
+            }
+            self._record(
+                event_type="contract_party_authority_granted",
+                aggregate_type="performance_contract",
+                aggregate_id=contract_id,
+                actor_id=self.principal.user_id,
+                metadata={"result": "granted", "idempotency_key": key},
+            )
+            return result
+
+        return self._run(
+            key,
+            {
+                "command": "provision_authority",
+                "contract": str(contract_id),
+                "role": party_role,
+                "principal": str(principal_id),
+            },
+            operation,
+        )
+
+    def create_binding(self, key: str, contract_id: UUID, body: dict[str, Any]) -> dict[str, Any]:
+        def operation() -> dict[str, Any]:
+            if self.repo.lock_contract(contract_id) is None:
+                raise ContractCommandError("resource_not_found")
+            identifier = uuid4()
+            self.session.execute(
+                text("""INSERT INTO contract_source_bindings
+                (id,tenant_id,contract_id,source_type,source_id,effective_start,effective_end,created_by)
+                VALUES(:id,:tenant,:contract,:type,:source,:start,:end,:actor)"""),
+                {
+                    "id": identifier,
+                    "tenant": self.principal.tenant_id,
+                    "contract": contract_id,
+                    "type": body["source_type"],
+                    "source": body["source_id"],
+                    "start": body["effective_start"],
+                    "end": body.get("effective_end"),
+                    "actor": self.principal.user_id,
+                },
+            )
+            result = {"id": str(identifier), "contract_id": str(contract_id), **body}
+            self._record(
+                event_type="contract_source_binding_created",
+                aggregate_type="performance_contract",
+                aggregate_id=contract_id,
+                actor_id=self.principal.user_id,
+                metadata={"idempotency_key": key},
+            )
+            return result
+
+        return self._run(
+            key, {"command": "create_binding", "contract": str(contract_id), **body}, operation
         )

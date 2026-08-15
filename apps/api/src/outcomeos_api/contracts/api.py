@@ -69,6 +69,11 @@ class BindingCreate(StrictBody):
     effective_end: datetime | None = None
 
 
+class AuthorityCreate(StrictBody):
+    party_role: str = Field(min_length=1, max_length=64)
+    principal_id: UUID
+
+
 def contracts_router(settings: Settings, sessions: Any) -> APIRouter:
     router = APIRouter(prefix="/api/v1", tags=["contracts"])
 
@@ -108,7 +113,7 @@ def contracts_router(settings: Settings, sessions: Any) -> APIRouter:
                     ),
                     {"tenant": principal.tenant_id, "membership": principal.membership_id},
                 ).scalar_one()
-                if role not in {"owner", "administrator", "operator", "marketer"}:
+                if role not in {"owner", "administrator"}:
                     raise TenantAccessError("data write permission required")
             else:
                 principal = principal_for_api_key(
@@ -129,10 +134,12 @@ def contracts_router(settings: Settings, sessions: Any) -> APIRouter:
         return key
 
     def execute(auth_value: tuple[Session, AuthenticatedPrincipal, bool], callback: Any) -> Any:
-        session, actor, _human = auth_value
+        session, actor, human = auth_value
         try:
             with tenant_transaction(session, actor):
-                return callback(ContractService(session, actor))
+                return callback(
+                    ContractService(session, actor, actor_type="human" if human else "api_key")
+                )
         except ContractCommandError as error:
             status = 404 if error.code == "resource_not_found" else 409
             if error.code in {"human_principal_required", "acceptance_not_authorized"}:
@@ -261,17 +268,43 @@ def contracts_router(settings: Settings, sessions: Any) -> APIRouter:
             ),
         )
 
-    @router.post("/contracts/{contract_id}/{action}")
-    def contract_action(
+    def change_contract_state(
         contract_id: UUID,
-        action: Literal["suspend", "resume", "terminate"],
-        key: str = Depends(command),
-        if_match: Annotated[int | None, Header(alias="If-Match")] = None,
-        value: tuple[Session, AuthenticatedPrincipal, bool] = Depends(auth),
+        action: str,
+        key: str,
+        if_match: int | None,
+        value: tuple[Session, AuthenticatedPrincipal, bool],
     ) -> Any:
         return execute(
             value, lambda service: service.transition_contract(key, contract_id, action, if_match)
         )
+
+    @router.post("/contracts/{contract_id}/suspend")
+    def suspend_contract(
+        contract_id: UUID,
+        key: str = Depends(command),
+        if_match: Annotated[int | None, Header(alias="If-Match")] = None,
+        value: tuple[Session, AuthenticatedPrincipal, bool] = Depends(auth),
+    ) -> Any:
+        return change_contract_state(contract_id, "suspend", key, if_match, value)
+
+    @router.post("/contracts/{contract_id}/resume")
+    def resume_contract(
+        contract_id: UUID,
+        key: str = Depends(command),
+        if_match: Annotated[int | None, Header(alias="If-Match")] = None,
+        value: tuple[Session, AuthenticatedPrincipal, bool] = Depends(auth),
+    ) -> Any:
+        return change_contract_state(contract_id, "resume", key, if_match, value)
+
+    @router.post("/contracts/{contract_id}/terminate")
+    def terminate_contract(
+        contract_id: UUID,
+        key: str = Depends(command),
+        if_match: Annotated[int | None, Header(alias="If-Match")] = None,
+        value: tuple[Session, AuthenticatedPrincipal, bool] = Depends(auth),
+    ) -> Any:
+        return change_contract_state(contract_id, "terminate", key, if_match, value)
 
     @router.post("/outcome-rules", status_code=201)
     def create_rule(
@@ -360,37 +393,25 @@ def contracts_router(settings: Settings, sessions: Any) -> APIRouter:
         key: str = Depends(command),
         value: tuple[Session, AuthenticatedPrincipal, bool] = Depends(auth),
     ) -> Any:
-        session, actor, _ = value
-        from uuid import uuid4
+        return execute(
+            value, lambda service: service.create_binding(key, contract_id, body.model_dump())
+        )
 
-        identifier = uuid4()
-        try:
-            with tenant_transaction(session, actor):
-                if (
-                    ContractRepository(session, actor.tenant_id).one(
-                        "performance_contracts", contract_id
-                    )
-                    is None
-                ):
-                    raise HTTPException(404, "resource_not_found")
-                session.execute(
-                    __import__("sqlalchemy").text(
-                        "INSERT INTO contract_source_bindings(id,tenant_id,contract_id,source_type,source_id,effective_start,effective_end,created_by) VALUES(:id,:tenant,:contract,:type,:source,:start,:end,:actor)"
-                    ),
-                    {
-                        "id": identifier,
-                        "tenant": actor.tenant_id,
-                        "contract": contract_id,
-                        "type": body.source_type,
-                        "source": body.source_id,
-                        "start": body.effective_start,
-                        "end": body.effective_end,
-                        "actor": actor.user_id,
-                    },
-                )
-            return {"id": identifier, "contract_id": contract_id, **body.model_dump()}
-        finally:
-            session.close()
+    @router.post("/contracts/{contract_id}/party-authorities", status_code=201)
+    def provision_authority(
+        contract_id: UUID,
+        body: AuthorityCreate,
+        key: str = Depends(command),
+        value: tuple[Session, AuthenticatedPrincipal, bool] = Depends(auth),
+    ) -> Any:
+        if not value[2]:
+            raise HTTPException(403, "human_principal_required")
+        return execute(
+            value,
+            lambda service: service.provision_authority(
+                key, contract_id, body.party_role, body.principal_id
+            ),
+        )
 
     @router.get("/contracts/{contract_id}/source-bindings")
     def list_bindings(

@@ -78,6 +78,12 @@ exact-digest authorized human acknowledgements, deterministic effective selectio
 authenticated management/read API are implemented. Additive revision `20260815_0009` descends
 from immutable `20260815_0008` and adds tenant-scoped command idempotency, a sanitized domain
 outbox, persisted party authority, and overlapping-binding prevention. Milestone 3 Part 1 remains
-incomplete until the mandatory service/API and real PostgreSQL matrix is added, the unchanged 90%
-coverage gate passes, and protected `api` and `web` jobs are green. Parts 2–3, rule execution,
+incomplete until the real PostgreSQL matrix passes and protected `api` and `web` jobs are green.
+Parts 2–3, rule execution,
 outcome evaluation, attribution, billing, disputes, live providers, and AI have not started.
+
+The PR #32 repair now has 159 passing non-integration API tests at 90.92% total Python coverage,
+including service, repository, API, idempotency, authority, validation, actor-attribution, and
+rollback-boundary coverage. Local PostgreSQL/S3 integration and Chromium evidence remains
+unavailable in the repair environment and must be supplied by the protected CI jobs before the
+milestone status can change to complete.

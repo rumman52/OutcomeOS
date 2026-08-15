@@ -1,7 +1,9 @@
 # ruff: noqa: E501
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -125,9 +127,9 @@ class ContractRepository:
         aggregate_type: str,
         aggregate_id: UUID | None,
         actor_id: UUID,
+        actor_type: str,
         metadata: dict[str, Any],
     ) -> None:
-        import json
         from uuid import uuid4
 
         safe = {
@@ -146,10 +148,11 @@ class ContractRepository:
         }
         self.session.execute(
             text(
-                "INSERT INTO audit_events(id,tenant_id,actor_user_id,action,resource_type,resource_id,correlation_id,details) VALUES(:id,:tenant,:actor,:event,:kind,:aggregate,:correlation,CAST(:metadata AS jsonb))"
+                "INSERT INTO audit_events(id,created_at,tenant_id,actor_user_id,action,resource_type,resource_id,correlation_id,details) VALUES(:id,:now,:tenant,:actor,:event,:kind,:aggregate,:correlation,CAST(:metadata AS jsonb))"
             ),
             {
                 "id": uuid4(),
+                "now": datetime.now(UTC),
                 "tenant": self.tenant_id,
                 "actor": actor_id,
                 "event": event_type,
@@ -161,7 +164,7 @@ class ContractRepository:
         )
         self.session.execute(
             text(
-                "INSERT INTO contract_domain_outbox(tenant_id,event_type,aggregate_type,aggregate_id,actor_id,actor_type,metadata) VALUES(:tenant,:event,:kind,:aggregate,:actor,'human',CAST(:metadata AS jsonb))"
+                "INSERT INTO contract_domain_outbox(tenant_id,event_type,aggregate_type,aggregate_id,actor_id,actor_type,metadata) VALUES(:tenant,:event,:kind,:aggregate,:actor,:actor_type,CAST(:metadata AS jsonb))"
             ),
             {
                 "tenant": self.tenant_id,
@@ -169,6 +172,7 @@ class ContractRepository:
                 "kind": aggregate_type,
                 "aggregate": aggregate_id,
                 "actor": actor_id,
+                "actor_type": actor_type,
                 "metadata": json.dumps(safe),
             },
         )
