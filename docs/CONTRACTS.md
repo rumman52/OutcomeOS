@@ -3,6 +3,18 @@
 Milestone 3 Part 1 defines provider-neutral commercial metadata; it does not evaluate an outcome
 or calculate a fee.
 
+## Deterministic evaluation binding
+
+Evaluation selection uses the authenticated source binding and canonical anchor occurrence time.
+Exactly one active/effective contract must match. The result binds its immutable contract version
+ID/digest and exact published rule version ID/digest; no-match is a bounded no-op and ambiguity fails
+closed. Historical versions remain readable, but an unpublished rule or historical contract that
+does not satisfy the evaluator schema cannot start a new evaluation.
+
+The anchor, positive evaluation window, and non-negative finalization window govern evidence.
+`attribution_window_seconds` is reserved for Part 3 and has no effect here. Pricing remains immutable
+metadata only: evaluation neither calculates a fee nor marks an outcome billable.
+
 Contracts have a stable tenant-owned aggregate (`draft`, `active`, `suspended`, `terminated`) and
 numbered terms versions (`draft`, `proposed`, `active`, `superseded`, `withdrawn`). Proposal binds
 canonical JSON to a SHA-256 digest. Every required party role must acknowledge that exact version
