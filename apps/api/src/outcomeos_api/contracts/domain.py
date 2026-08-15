@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
@@ -20,10 +21,30 @@ SUPPORTED_CURRENCIES = frozenset(
 def canonical_document(value: Mapping[str, Any]) -> str:
     try:
         return json.dumps(
-            dict(value), sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+            _plain(value),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
         )
     except (TypeError, ValueError) as exc:
         raise DomainError("document must contain bounded JSON values") from exc
+
+
+def _plain(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: _plain(item) for key, item in value.items()}
+    if isinstance(value, tuple | list):
+        return [_plain(item) for item in value]
+    return value
+
+
+def _freeze(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _freeze(item) for key, item in value.items()})
+    if isinstance(value, tuple | list):
+        return tuple(_freeze(item) for item in value)
+    return deepcopy(value)
 
 
 def document_digest(value: Mapping[str, Any]) -> str:
@@ -122,7 +143,7 @@ class RuleVersion:
         encoded = canonical_document(self.definition)
         if len(encoded.encode()) > 16_384:
             raise DomainError("rule definition is too large")
-        object.__setattr__(self, "definition", MappingProxyType(dict(self.definition)))
+        object.__setattr__(self, "definition", _freeze(self.definition))
 
     def publish(self) -> RuleVersion:
         if self.state is not RuleState.DRAFT:
@@ -180,7 +201,7 @@ class ContractVersion:
             raise DomainError("effective timestamps must be timezone-aware")
         if self.effective_end is not None and self.effective_start >= self.effective_end:
             raise DomainError("effective end must follow start")
-        object.__setattr__(self, "terms", MappingProxyType(dict(self.terms)))
+        object.__setattr__(self, "terms", _freeze(self.terms))
 
     def propose(self) -> ContractVersion:
         if self.state is not VersionState.DRAFT:
@@ -216,6 +237,9 @@ class EffectiveCandidate:
     version: ContractVersion
     source_type: str
     source_id: str
+    contract_state: ContractState = ContractState.ACTIVE
+    binding_start: datetime | None = None
+    binding_end: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -238,6 +262,9 @@ def select_effective_contract(
             for item in candidates
             if item.source_type == source_type
             and item.source_id == source_id
+            and item.contract_state is ContractState.ACTIVE
+            and (item.binding_start is None or item.binding_start <= occurred_at)
+            and (item.binding_end is None or occurred_at < item.binding_end)
             and item.version.state is VersionState.ACTIVE
             and item.version.effective_start <= occurred_at
             and (item.version.effective_end is None or occurred_at < item.version.effective_end)

@@ -83,18 +83,25 @@ def upgrade() -> None:
     CREATE INDEX rule_list_idx ON outcome_rules(tenant_id,created_at,id);
     CREATE FUNCTION protect_contract_history() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
       IF TG_OP='DELETE' OR TG_TABLE_NAME='contract_party_acceptances' THEN RAISE EXCEPTION 'immutable commercial history'; END IF;
-      IF TG_TABLE_NAME='outcome_rule_versions' AND OLD.state IN ('published','retired') AND
-        (NEW.definition,NEW.canonical_document,NEW.digest,NEW.template_id,NEW.version) IS DISTINCT FROM
-        (OLD.definition,OLD.canonical_document,OLD.digest,OLD.template_id,OLD.version) THEN RAISE EXCEPTION 'immutable published rule'; END IF;
-      IF TG_TABLE_NAME='performance_contract_versions' AND OLD.state IN ('proposed','active','superseded','withdrawn') AND
-        (NEW.terms,NEW.canonical_document,NEW.digest,NEW.currency,NEW.pricing_model,NEW.fixed_fee_minor,NEW.rate_basis_points,NEW.floor_minor,NEW.cap_minor,NEW.effective_start,NEW.effective_end) IS DISTINCT FROM
-        (OLD.terms,OLD.canonical_document,OLD.digest,OLD.currency,OLD.pricing_model,OLD.fixed_fee_minor,OLD.rate_basis_points,OLD.floor_minor,OLD.cap_minor,OLD.effective_start,OLD.effective_end) THEN RAISE EXCEPTION 'immutable proposed contract'; END IF;
+      IF TG_TABLE_NAME='outcome_rule_versions' THEN
+        IF NOT ((OLD.state='draft' AND NEW.state IN ('draft','published')) OR (OLD.state='published' AND NEW.state='retired') OR OLD.state=NEW.state) THEN RAISE EXCEPTION 'invalid rule lifecycle transition'; END IF;
+        IF OLD.state IN ('published','retired') AND (to_jsonb(NEW)-'state'-'published_by'-'published_at') IS DISTINCT FROM (to_jsonb(OLD)-'state'-'published_by'-'published_at') THEN RAISE EXCEPTION 'immutable published rule'; END IF;
+      END IF;
+      IF TG_TABLE_NAME='performance_contract_versions' THEN
+        IF NOT ((OLD.state='draft' AND NEW.state IN ('draft','proposed','withdrawn')) OR (OLD.state='proposed' AND NEW.state IN ('active','withdrawn')) OR (OLD.state='active' AND NEW.state='superseded') OR OLD.state=NEW.state) THEN RAISE EXCEPTION 'invalid contract version lifecycle transition'; END IF;
+        IF OLD.state<>'draft' AND (to_jsonb(NEW)-'state') IS DISTINCT FROM (to_jsonb(OLD)-'state') THEN RAISE EXCEPTION 'immutable proposed contract'; END IF;
+      END IF;
+      IF TG_TABLE_NAME='performance_contracts' AND NOT ((OLD.state='draft' AND NEW.state IN ('active','terminated')) OR (OLD.state='active' AND NEW.state IN ('suspended','terminated')) OR (OLD.state='suspended' AND NEW.state IN ('active','terminated')) OR OLD.state=NEW.state) THEN RAISE EXCEPTION 'invalid contract lifecycle transition'; END IF;
       RETURN NEW; END $$;
     CREATE TRIGGER immutable_rule_versions BEFORE UPDATE OR DELETE ON outcome_rule_versions FOR EACH ROW EXECUTE FUNCTION protect_contract_history();
     CREATE TRIGGER immutable_contract_versions BEFORE UPDATE OR DELETE ON performance_contract_versions FOR EACH ROW EXECUTE FUNCTION protect_contract_history();
     CREATE TRIGGER immutable_acceptances BEFORE UPDATE OR DELETE ON contract_party_acceptances FOR EACH ROW EXECUTE FUNCTION protect_contract_history();
+    CREATE TRIGGER contract_lifecycle BEFORE UPDATE OR DELETE ON performance_contracts FOR EACH ROW EXECUTE FUNCTION protect_contract_history();
     """)
     for table in TABLES:
+        op.execute(
+            f'''CREATE TRIGGER trg_{table}_tenant_immutable BEFORE UPDATE OF tenant_id ON "{table}" FOR EACH ROW EXECUTE FUNCTION outcomeos_reject_tenant_change()'''
+        )
         op.execute(f'ALTER TABLE "{table}" ENABLE ROW LEVEL SECURITY')
         op.execute(f'ALTER TABLE "{table}" FORCE ROW LEVEL SECURITY')
         op.execute(

@@ -40,7 +40,7 @@ def test_migration_head_and_restricted_role_enforce_rls_and_composite_fk(
     contact_b = uuid4()
     role = f"outcomeos_app_{uuid4().hex[:10]}"
     with migrated_engine.begin() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "20260815_0007"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "20260815_0008"
         connection.execute(text(f'CREATE ROLE "{role}" NOLOGIN NOSUPERUSER NOBYPASSRLS'))
         connection.execute(text(f'GRANT USAGE ON SCHEMA public TO "{role}"'))
         connection.execute(

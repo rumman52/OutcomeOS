@@ -1,18 +1,21 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 import pytest
 
 from outcomeos_api.contracts.domain import (
     BasisPoints,
+    ContractState,
     ContractVersion,
-    DomainError,
     EffectiveCandidate,
     FixedFee,
     RuleVersion,
     VersionState,
     document_digest,
     select_effective_contract,
+    validate_timezone,
 )
+from outcomeos_api.domain import DomainError
 
 NOW = datetime(2026, 8, 15, tzinfo=UTC)
 
@@ -36,10 +39,20 @@ def test_basis_points_boundaries_and_floor_cap() -> None:
             BasisPoints(value, "USD")  # type: ignore[arg-type]
     with pytest.raises(DomainError):
         BasisPoints(100, "USD", 2, 1)
+    with pytest.raises(DomainError):
+        BasisPoints(100, "ZZZ")
+    with pytest.raises(DomainError):
+        BasisPoints(100, "USD", -1)
+    assert validate_timezone("UTC") == "UTC"
+    with pytest.raises(DomainError):
+        validate_timezone("Not/A_Real_Zone")
 
 
 def test_rule_publish_and_retire_are_immutable() -> None:
-    draft = RuleVersion("r1", 1, "delivered_paid_order", {"required_statuses": ["paid"]})
+    definition = {"required_statuses": ["paid"]}
+    draft = RuleVersion("r1", 1, "delivered_paid_order", definition)
+    definition["required_statuses"].append("refunded")
+    assert draft.definition["required_statuses"] == ("paid",)
     published = draft.publish()
     assert draft.digest is None and published.digest
     assert published.retire().state == "retired"
@@ -48,9 +61,12 @@ def test_rule_publish_and_retire_are_immutable() -> None:
 
 
 def proposed_version(identifier: str = "v1") -> ContractVersion:
-    return ContractVersion(
-        identifier, 1, {"currency": "USD"}, frozenset({"buyer", "seller"}), NOW
-    ).propose()
+    terms: dict[str, Any] = {"currency": "USD", "nested": {"states": ["paid"]}}
+    version = ContractVersion(identifier, 1, terms, frozenset({"buyer", "seller"}), NOW)
+    terms["nested"]["states"].append("refunded")
+    nested = cast(dict[str, Any], version.terms["nested"])
+    assert nested["states"] == ("paid",)
+    return version.propose()
 
 
 def test_activation_requires_exact_digest_acceptance_from_every_role() -> None:
@@ -87,4 +103,16 @@ def test_selection_is_exclusive_at_end_and_deterministic() -> None:
     assert (
         select_effective_contract([candidate, candidate], "shop", "s1", NOW).reason
         == "ambiguous_effective_contract"
+    )
+
+
+def test_selection_enforces_binding_interval_and_parent_state() -> None:
+    active = proposed_version()
+    active = active.accept("buyer", "u1", NOW, active.digest or "")
+    active = active.accept("seller", "u2", NOW, active.digest or "").activate()
+    suspended = EffectiveCandidate(active, "shop", "s1", ContractState.SUSPENDED)
+    future = EffectiveCandidate(active, "shop", "s1", binding_start=NOW + timedelta(seconds=1))
+    assert (
+        select_effective_contract([suspended, future], "shop", "s1", NOW).reason
+        == "no_effective_contract"
     )
