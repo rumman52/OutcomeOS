@@ -31,6 +31,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "If-Match",
             "X-OutcomeOS-Timestamp",
             "X-OutcomeOS-Signature",
+            "X-OutcomeOS-Tenant",
         ],
     )
 
@@ -107,6 +108,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise RuntimeError("JSON sandbox can only be mounted in development or test")
         _mount_sandbox(application, runtime)
     elif runtime.integration_keyring and runtime.integration_active_key_id:
+        from outcomeos_api.contracts.api import contracts_router
         from outcomeos_api.events.operations import operations_router
         from outcomeos_api.imports.api import csv_import_router
         from outcomeos_api.ingestion.api import public_webhook_router
@@ -127,6 +129,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             max_bytes=runtime.s3_max_object_bytes,
         )
         application.include_router(management_router(runtime, write_sessions))
+        application.include_router(contracts_router(runtime, write_sessions))
         application.include_router(operations_router(runtime, write_sessions))
         application.include_router(csv_import_router(runtime, write_sessions, storage))
         application.include_router(

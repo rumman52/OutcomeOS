@@ -40,7 +40,7 @@ def test_migration_head_and_restricted_role_enforce_rls_and_composite_fk(
     contact_b = uuid4()
     role = f"outcomeos_app_{uuid4().hex[:10]}"
     with migrated_engine.begin() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "20260815_0008"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "20260815_0009"
         connection.execute(text(f'CREATE ROLE "{role}" NOLOGIN NOSUPERUSER NOBYPASSRLS'))
         connection.execute(text(f'GRANT USAGE ON SCHEMA public TO "{role}"'))
         connection.execute(
@@ -130,3 +130,26 @@ def test_tenant_id_is_immutable(migrated_engine: Engine) -> None:
                 {"other": tenant_b, "id": contact},
             )
         transaction.rollback()
+
+
+def test_contract_management_revision_round_trip(database_url: str) -> None:
+    config = Config("apps/api/alembic.ini")
+    config.set_main_option("sqlalchemy.url", database_url)
+    command.downgrade(config, "20260815_0008")
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+                "20260815_0008"
+            )
+            assert connection.scalar(text("SELECT to_regclass('contract_command_results')")) is None
+        command.upgrade(config, "20260815_0009")
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+                "20260815_0009"
+            )
+            assert connection.scalar(text("SELECT to_regclass('contract_command_results')")) == (
+                "contract_command_results"
+            )
+    finally:
+        engine.dispose()

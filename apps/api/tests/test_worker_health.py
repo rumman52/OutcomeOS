@@ -54,7 +54,7 @@ def test_worker_health_reports_database_unavailable(monkeypatch: pytest.MonkeyPa
 
 @pytest.mark.parametrize(
     "revision,status",
-    [("20260815_0008", 200), ("20260815_0007", 503), (None, 503)],
+    [("20260815_0009", 200), ("20260815_0008", 503), (None, 503)],
 )
 def test_readiness_requires_exact_migration_head(
     monkeypatch: pytest.MonkeyPatch, revision: str | None, status: int
