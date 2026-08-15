@@ -23,7 +23,9 @@ class OutcomeState(StrEnum):
 ALLOWED_TRANSITIONS: dict[OutcomeState, frozenset[OutcomeState]] = {
     OutcomeState.CAPTURED: frozenset({OutcomeState.QUALIFIED, OutcomeState.REJECTED}),
     OutcomeState.QUALIFIED: frozenset({OutcomeState.CONVERTED, OutcomeState.REJECTED}),
-    OutcomeState.CONVERTED: frozenset({OutcomeState.VERIFIED, OutcomeState.FAILED}),
+    OutcomeState.CONVERTED: frozenset(
+        {OutcomeState.VERIFIED, OutcomeState.REJECTED, OutcomeState.FAILED}
+    ),
     OutcomeState.VERIFIED: frozenset({OutcomeState.BILLABLE}),
     OutcomeState.BILLABLE: frozenset({OutcomeState.SETTLED, OutcomeState.DISPUTED}),
     OutcomeState.DISPUTED: frozenset({OutcomeState.SETTLED, OutcomeState.CREDITED}),

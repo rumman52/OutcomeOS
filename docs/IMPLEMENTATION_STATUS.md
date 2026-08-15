@@ -53,9 +53,10 @@ OutcomeOS is **in active transformation** from a Bangladesh-specific determinist
 
 ## Exact next step
 
-Milestone 3 Part 1's framework-independent contract/rule model and additive persistence schema are
-implemented locally. Complete and verify its authenticated management adapters and real PostgreSQL
-integration matrix before treating Part 1 as complete. Parts 2 and 3 have not started.
+Complete Milestone 3 Part 2's immutable PostgreSQL evaluation history, transactional worker/service,
+reconciliation, and authenticated read surface. The deterministic domain is implemented, but Part 2
+is not complete until those slices and their protected checks pass. Part 3 attribution is next only
+after Part 2 completion and has not started.
 
 ## Milestone 2 verification
 
@@ -77,13 +78,25 @@ Canonical digest-bound terms, exact fixed-fee/basis-point metadata, lifecycle se
 exact-digest authorized human acknowledgements, deterministic effective selection, and the
 authenticated management/read API are implemented. Additive revision `20260815_0009` descends
 from immutable `20260815_0008` and adds tenant-scoped command idempotency, a sanitized domain
-outbox, persisted party authority, and overlapping-binding prevention. Milestone 3 Part 1 remains
-incomplete until the real PostgreSQL matrix passes and protected `api` and `web` jobs are green.
-Parts 2–3, rule execution,
-outcome evaluation, attribution, billing, disputes, live providers, and AI have not started.
+outbox, persisted party authority, and overlapping-binding prevention. Milestone 3 Part 1 is verified
+on merged `main`: workflow `31883490308` passed protected `api` and `web`, including 159 API tests at
+90.92% coverage, nine integration tests with zero skips, and one migration head (`20260815_0009`).
 
 The PR #32 repair now has 159 passing non-integration API tests at 90.92% total Python coverage,
 including service, repository, API, idempotency, authority, validation, actor-attribution, and
 rollback-boundary coverage. Local PostgreSQL/S3 integration and Chromium evidence remains
 unavailable in the repair environment and must be supplied by the protected CI jobs before the
-milestone status can change to complete.
+milestone status can change to complete. The later successful merged-main workflow above supplies
+that evidence and supersedes this historical pre-merge note.
+
+## Milestone 3 Part 2 status
+
+The provider-neutral pure evaluator implements the four approved templates with bounded typed
+inputs/results, stable canonical input and decision digests, tenant/subject isolation, exact event
+digest binding, deterministic ordering and duplicate handling, aware-time half-open windows,
+finalization, explicit lead acceptance, conflicts, disqualifiers, and currency consistency without
+fee calculation. Local focused unit tests cover this domain behavior.
+
+Immutable PostgreSQL revisions, atomic service/worker effects, reconciliation, and authenticated read
+APIs remain incomplete. Part 2 is therefore not production-ready. Part 3, attribution, billing,
+disputes, live providers, AI decisions, deployment, and production work have not started.
